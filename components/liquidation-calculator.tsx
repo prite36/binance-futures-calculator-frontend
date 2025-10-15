@@ -15,15 +15,6 @@ import { Slider } from "@/components/ui/slider";
 import { calculateLiquidationPrice } from "@/lib/liquidation-formula";
 import { TradingPairSelector } from "@/components/trading-pair-selector";
 
-interface BinanceBracket {
-  bracket: number;
-  initialLeverage: number;
-  notionalCap: number;
-  notionalFloor: number;
-  maintMarginRatio: number;
-  cum: number;
-}
-
 export function LiquidationCalculator() {
   const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
   const [marginMode, setMarginMode] = useState<"isolated" | "cross">("cross");
@@ -147,8 +138,16 @@ export function LiquidationCalculator() {
   // Extract base asset from symbol (e.g., BTCUSDT -> BTC)
   const baseAsset = selectedSymbol.replace("USDT", "");
 
-  // Memoize expensive calculations
+  // Memoize expensive calculations - only calculate when liquidation price is calculated
   const calculationDetails = useMemo(() => {
+    if (liquidationPrice === null) {
+      return {
+        positionValue: 0,
+        initialMargin: 0,
+        maintenanceRate: "0.0000%",
+      };
+    }
+
     const entryPriceNum = Number.parseFloat(entryPrice) || 0;
     const quantityNum = Number.parseFloat(quantity) || 0;
     const positionValue = entryPriceNum * quantityNum;
@@ -170,7 +169,7 @@ export function LiquidationCalculator() {
       initialMargin,
       maintenanceRate,
     };
-  }, [entryPrice, quantity, leverage, binanceBrackets]);
+  }, [liquidationPrice, entryPrice, quantity, leverage, binanceBrackets]);
 
   const handleCalculate = () => {
     if (!validateInputs()) {
@@ -296,7 +295,7 @@ export function LiquidationCalculator() {
               <SelectTrigger className="bg-card border-border">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-card border-border">
                 <SelectItem value="isolated">Isolated</SelectItem>
                 <SelectItem value="cross">Cross</SelectItem>
               </SelectContent>
@@ -312,7 +311,7 @@ export function LiquidationCalculator() {
               <SelectTrigger className="bg-card border-border">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-card border-border">
                 <SelectItem value="one-way">One-way Mode</SelectItem>
                 <SelectItem value="hedge">Hedge Mode</SelectItem>
               </SelectContent>
@@ -327,9 +326,9 @@ export function LiquidationCalculator() {
             <button
               type="button"
               onClick={() => setSide("long")}
-              className={`py-3 text-sm font-medium transition-all duration-200 ${
+              className={`py-3 text-sm font-medium transition-all duration-200 border-r border-border ${
                 side === "long"
-                  ? "bg-success text-success-foreground shadow-sm"
+                  ? "bg-success text-success-foreground shadow-sm border-success ring-1 ring-success/20"
                   : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
@@ -340,7 +339,7 @@ export function LiquidationCalculator() {
               onClick={() => setSide("short")}
               className={`py-3 text-sm font-medium transition-all duration-200 ${
                 side === "short"
-                  ? "bg-destructive text-destructive-foreground shadow-sm"
+                  ? "bg-destructive text-destructive-foreground shadow-sm border-destructive ring-1 ring-destructive/20"
                   : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
@@ -607,8 +606,8 @@ export function LiquidationCalculator() {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Max Leverage:</span>
-              <span className="font-medium">{maxLeverage}x</span>
+              <span className="text-muted-foreground">Current Leverage:</span>
+              <span className="font-medium">{leverage}x</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Maintenance Rate:</span>

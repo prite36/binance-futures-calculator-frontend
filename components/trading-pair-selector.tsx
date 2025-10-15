@@ -95,13 +95,13 @@ export function TradingPairSelector({ selectedSymbol, onSymbolChange, className 
         <SelectTrigger className="bg-card border-border">
           <SelectValue placeholder={isLoading ? "Loading..." : "Select trading pair"} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-card border-border">
           <div className="p-2">
             <Input
               placeholder="Search trading pairs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8 text-sm"
+              className="h-8 text-sm bg-card border-border"
               onClick={(e) => e.stopPropagation()}
             />
           </div>

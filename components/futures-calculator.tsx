@@ -4,10 +4,11 @@ import { useState } from "react"
 import { Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LiquidationCalculator } from "@/components/liquidation-calculator"
+import { MultiPositionCalculator } from "@/components/multi-position-calculator"
 
 const tabs = [
   { id: "liquidation", label: "Liquidation Price" },
-  { id: "openprice", label: "Open Price" },
+  { id: "multi-position", label: "Multi-Position Calculator" },
 ]
 
 export function FuturesCalculator() {
@@ -27,15 +28,7 @@ export function FuturesCalculator() {
         </div>
       </header>
 
-      {/* Trading Pair */}
-      <div className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold">BTCUSDT</span>
-            <span className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">Perp</span>
-          </div>
-        </div>
-      </div>
+
 
       {/* Tabs */}
       <div className="border-b border-border bg-card">
@@ -60,11 +53,7 @@ export function FuturesCalculator() {
       {/* Calculator Content */}
       <div className="container mx-auto px-4 py-8">
         {activeTab === "liquidation" && <LiquidationCalculator />}
-        {activeTab !== "liquidation" && (
-          <div className="text-center text-muted-foreground py-12">
-            {tabs.find((t) => t.id === activeTab)?.label} calculator coming soon...
-          </div>
-        )}
+        {activeTab === "multi-position" && <MultiPositionCalculator />}
       </div>
     </div>
   )
