@@ -6,10 +6,7 @@ import { Button } from "@/components/ui/button"
 import { LiquidationCalculator } from "@/components/liquidation-calculator"
 
 const tabs = [
-  { id: "pnl", label: "PnL" },
-  { id: "target", label: "Target Price" },
   { id: "liquidation", label: "Liquidation Price" },
-  { id: "maxopen", label: "Max Open" },
   { id: "openprice", label: "Open Price" },
 ]
 
