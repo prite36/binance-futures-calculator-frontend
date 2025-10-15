@@ -29,93 +29,7 @@ interface MaintenanceTier {
   maxLeverage: number;
 }
 
-// Real BTCUSDT leverage brackets from Binance API (updated to match route.ts)
-const BTCUSDT_TIERS: MaintenanceTier[] = [
-  {
-    minNotional: 0,
-    maxNotional: 300000,
-    maintenanceMarginRate: 0.004,
-    maintenanceAmount: 0.0,
-    maxLeverage: 150,
-  },
-  {
-    minNotional: 300000,
-    maxNotional: 800000,
-    maintenanceMarginRate: 0.005,
-    maintenanceAmount: 300.0,
-    maxLeverage: 100,
-  },
-  {
-    minNotional: 800000,
-    maxNotional: 3000000,
-    maintenanceMarginRate: 0.0065,
-    maintenanceAmount: 1500.0,
-    maxLeverage: 75,
-  },
-  {
-    minNotional: 3000000,
-    maxNotional: 12000000,
-    maintenanceMarginRate: 0.01,
-    maintenanceAmount: 12000.0,
-    maxLeverage: 50,
-  },
-  {
-    minNotional: 12000000,
-    maxNotional: 70000000,
-    maintenanceMarginRate: 0.02,
-    maintenanceAmount: 132000.0,
-    maxLeverage: 25,
-  },
-  {
-    minNotional: 70000000,
-    maxNotional: 100000000,
-    maintenanceMarginRate: 0.025,
-    maintenanceAmount: 482000.0,
-    maxLeverage: 20,
-  },
-  {
-    minNotional: 100000000,
-    maxNotional: 230000000,
-    maintenanceMarginRate: 0.05,
-    maintenanceAmount: 2982000.0,
-    maxLeverage: 10,
-  },
-  {
-    minNotional: 230000000,
-    maxNotional: 480000000,
-    maintenanceMarginRate: 0.1,
-    maintenanceAmount: 14482000.0,
-    maxLeverage: 5,
-  },
-  {
-    minNotional: 480000000,
-    maxNotional: 600000000,
-    maintenanceMarginRate: 0.125,
-    maintenanceAmount: 26482000.0,
-    maxLeverage: 4,
-  },
-  {
-    minNotional: 600000000,
-    maxNotional: 800000000,
-    maintenanceMarginRate: 0.15,
-    maintenanceAmount: 41482000.0,
-    maxLeverage: 3,
-  },
-  {
-    minNotional: 800000000,
-    maxNotional: 1200000000,
-    maintenanceMarginRate: 0.25,
-    maintenanceAmount: 121482000.0,
-    maxLeverage: 2,
-  },
-  {
-    minNotional: 1200000000,
-    maxNotional: Number.POSITIVE_INFINITY,
-    maintenanceMarginRate: 0.5,
-    maintenanceAmount: 421482000.0,
-    maxLeverage: 1,
-  },
-];
+
 
 export function convertBinanceBracketsToTiers(
   brackets: any[]
@@ -146,7 +60,7 @@ interface CalculationParams {
   quantity: number;
   balance: number;
   marginMode: "isolated" | "cross";
-  tiers?: MaintenanceTier[]; // Optional custom tiers from API
+  tiers: MaintenanceTier[]; // Required tiers from API
   symbol?: string; // Optional symbol for logging
 }
 
@@ -157,7 +71,7 @@ export function calculateLiquidationPrice(params: CalculationParams): number {
     quantity,
     balance,
     marginMode,
-    tiers = BTCUSDT_TIERS,
+    tiers,
     symbol = "UNKNOWN",
   } = params;
 
@@ -222,14 +136,15 @@ export function calculateLiquidationPrice(params: CalculationParams): number {
  */
 export function calculateMaintenanceMargin(
   entryPrice: number,
-  quantity: number
+  quantity: number,
+  tiers: MaintenanceTier[]
 ): {
   maintenanceMargin: number;
   maintenanceMarginRate: number;
   maintenanceAmount: number;
 } {
   const notionalValue = entryPrice * quantity;
-  const tier = getMaintenanceTier(notionalValue, BTCUSDT_TIERS);
+  const tier = getMaintenanceTier(notionalValue, tiers);
 
   const maintenanceMargin =
     notionalValue * tier.maintenanceMarginRate - tier.maintenanceAmount;

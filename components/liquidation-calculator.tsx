@@ -1,169 +1,198 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo } from "react"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
-import { calculateLiquidationPrice } from "@/lib/liquidation-formula"
-import { TradingPairSelector } from "@/components/trading-pair-selector"
+import { useState, useEffect, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { calculateLiquidationPrice } from "@/lib/liquidation-formula";
+import { TradingPairSelector } from "@/components/trading-pair-selector";
 
 interface BinanceBracket {
-  bracket: number
-  initialLeverage: number
-  notionalCap: number
-  notionalFloor: number
-  maintMarginRatio: number
-  cum: number
+  bracket: number;
+  initialLeverage: number;
+  notionalCap: number;
+  notionalFloor: number;
+  maintMarginRatio: number;
+  cum: number;
 }
 
 export function LiquidationCalculator() {
-  const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT")
-  const [marginMode, setMarginMode] = useState<"isolated" | "cross">("cross")
-  const [positionMode, setPositionMode] = useState<"one-way" | "hedge">("one-way")
-  const [side, setSide] = useState<"long" | "short">("short")
-  const [leverage, setLeverage] = useState(10)
-  const [entryPrice, setEntryPrice] = useState("90000")
-  const [quantity, setQuantity] = useState("0.05")
-  const [balance, setBalance] = useState("5000")
-  const [liquidationPrice, setLiquidationPrice] = useState<number | null>(null)
-  const [binanceBrackets, setBinanceBrackets] = useState<any[] | null>(null)
-  const [isLoadingBrackets, setIsLoadingBrackets] = useState(true)
-  const [maxLeverage, setMaxLeverage] = useState(150)
-  const [currentPrice, setCurrentPrice] = useState<number | null>(null)
-  const [apiError, setApiError] = useState<string | null>(null)
+  const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
+  const [marginMode, setMarginMode] = useState<"isolated" | "cross">("cross");
+  const [positionMode, setPositionMode] = useState<"one-way" | "hedge">(
+    "one-way"
+  );
+  const [side, setSide] = useState<"long" | "short">("short");
+  const [leverage, setLeverage] = useState(10);
+  const [entryPrice, setEntryPrice] = useState("90000");
+  const [quantity, setQuantity] = useState("0.05");
+  const [balance, setBalance] = useState("5000");
+  const [liquidationPrice, setLiquidationPrice] = useState<number | null>(null);
+  const [binanceBrackets, setBinanceBrackets] = useState<any[] | null>(null);
+  const [isLoadingBrackets, setIsLoadingBrackets] = useState(true);
+  const [maxLeverage, setMaxLeverage] = useState(150);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Memoized validation
   const validationErrors = useMemo(() => {
-    const errors: {[key: string]: string} = {}
-    
-    const entryPriceNum = Number.parseFloat(entryPrice)
-    const quantityNum = Number.parseFloat(quantity)
-    const balanceNum = Number.parseFloat(balance)
-    
+    const errors: { [key: string]: string } = {};
+
+    const entryPriceNum = Number.parseFloat(entryPrice);
+    const quantityNum = Number.parseFloat(quantity);
+    const balanceNum = Number.parseFloat(balance);
+
     if (!entryPrice || entryPriceNum <= 0) {
-      errors.entryPrice = "Entry price must be a positive number"
+      errors.entryPrice = "Entry price must be a positive number";
     }
-    
+
     if (!quantity || quantityNum <= 0) {
-      errors.quantity = "Quantity must be a positive number"
+      errors.quantity = "Quantity must be a positive number";
     }
-    
+
     if (!balance || balanceNum <= 0) {
-      errors.balance = "Balance must be a positive number"
+      errors.balance = "Balance must be a positive number";
     }
-    
+
     // Check if position size is reasonable
-    const positionValue = entryPriceNum * quantityNum
-    const requiredMargin = positionValue / leverage
-    
-    if (requiredMargin > balanceNum && entryPriceNum > 0 && quantityNum > 0 && balanceNum > 0) {
-      errors.balance = "Insufficient balance for this position size and leverage"
+    const positionValue = entryPriceNum * quantityNum;
+    const requiredMargin = positionValue / leverage;
+
+    if (
+      requiredMargin > balanceNum &&
+      entryPriceNum > 0 &&
+      quantityNum > 0 &&
+      balanceNum > 0
+    ) {
+      errors.balance =
+        "Insufficient balance for this position size and leverage";
     }
-    
-    return errors
-  }, [entryPrice, quantity, balance, leverage])
+
+    return errors;
+  }, [entryPrice, quantity, balance, leverage]);
 
   // Validation function for calculate button
   const validateInputs = () => {
-    return Object.keys(validationErrors).length === 0
-  }
+    return Object.keys(validationErrors).length === 0;
+  };
 
   useEffect(() => {
     async function fetchBinanceBrackets() {
-      if (!selectedSymbol) return
-      
+      if (!selectedSymbol) return;
+
       try {
-        setIsLoadingBrackets(true)
-        setApiError(null)
-        const response = await fetch(`/api/binance/leverage-bracket?symbol=${selectedSymbol}`)
+        setIsLoadingBrackets(true);
+        setApiError(null);
+        const response = await fetch(
+          `/api/binance/leverage-bracket?symbol=${selectedSymbol}`
+        );
         if (!response.ok) {
-          throw new Error(`Failed to fetch brackets: ${response.status}`)
+          throw new Error(`Failed to fetch brackets: ${response.status}`);
         }
-        const data = await response.json()
-        console.log("[v0] Fetched Binance brackets:", data.brackets)
-        setBinanceBrackets(data.brackets)
-        setMaxLeverage(data.maxLeverage || 150)
+        const data = await response.json();
+        console.log("[v0] Fetched Binance brackets:", data.brackets);
+        setBinanceBrackets(data.brackets);
+        setMaxLeverage(data.maxLeverage || 150);
       } catch (error) {
-        console.error("[v0] Error fetching Binance brackets:", error)
-        setApiError("Failed to load leverage data. Using default values.")
-        // Will use default tiers as fallback
-        setMaxLeverage(150)
+        console.error("[v0] Error fetching Binance brackets:", error);
+        setApiError(
+          "Failed to load leverage data from API. Please check your connection and try again."
+        );
+        setBinanceBrackets(null);
+        setMaxLeverage(1); // Set to minimum safe value
       } finally {
-        setIsLoadingBrackets(false)
+        setIsLoadingBrackets(false);
       }
     }
 
-    fetchBinanceBrackets()
-  }, [selectedSymbol])
+    fetchBinanceBrackets();
+  }, [selectedSymbol]);
 
   useEffect(() => {
     async function fetchCurrentPrice() {
-      if (!selectedSymbol) return
-      
+      if (!selectedSymbol) return;
+
       try {
-        const response = await fetch(`/api/binance/ticker?symbol=${selectedSymbol}`)
+        const response = await fetch(
+          `/api/binance/ticker?symbol=${selectedSymbol}`
+        );
         if (!response.ok) {
-          throw new Error("Failed to fetch current price")
+          throw new Error("Failed to fetch current price");
         }
-        const data = await response.json()
-        setCurrentPrice(data.price)
+        const data = await response.json();
+        setCurrentPrice(data.price);
       } catch (error) {
-        console.error("[v0] Error fetching current price:", error)
+        console.error("[v0] Error fetching current price:", error);
         // Don't show error for price fetch as it's not critical
       }
     }
 
-    fetchCurrentPrice()
-    
-    // Update price every 30 seconds
-    const interval = setInterval(fetchCurrentPrice, 30000)
-    return () => clearInterval(interval)
-  }, [selectedSymbol])
+    fetchCurrentPrice();
 
-  const maxPosition = Number.parseFloat(balance) * leverage
-  
+    // Update price every 30 seconds
+    const interval = setInterval(fetchCurrentPrice, 30000);
+    return () => clearInterval(interval);
+  }, [selectedSymbol]);
+
+  const maxPosition = Number.parseFloat(balance) * leverage;
+
   // Extract base asset from symbol (e.g., BTCUSDT -> BTC)
-  const baseAsset = selectedSymbol.replace("USDT", "")
+  const baseAsset = selectedSymbol.replace("USDT", "");
 
   // Memoize expensive calculations
   const calculationDetails = useMemo(() => {
-    const entryPriceNum = Number.parseFloat(entryPrice) || 0
-    const quantityNum = Number.parseFloat(quantity) || 0
-    const positionValue = entryPriceNum * quantityNum
-    const initialMargin = positionValue / leverage
-    
-    let maintenanceRate = "0.0000%"
+    const entryPriceNum = Number.parseFloat(entryPrice) || 0;
+    const quantityNum = Number.parseFloat(quantity) || 0;
+    const positionValue = entryPriceNum * quantityNum;
+    const initialMargin = positionValue / leverage;
+
+    let maintenanceRate = "0.0000%";
     if (binanceBrackets && positionValue > 0) {
-      const tier = binanceBrackets.find(
-        (bracket) => positionValue >= bracket.notionalFloor && positionValue < bracket.notionalCap
-      ) || binanceBrackets[binanceBrackets.length - 1]
-      maintenanceRate = `${(tier.maintMarginRatio * 100).toFixed(4)}%`
+      const tier =
+        binanceBrackets.find(
+          (bracket) =>
+            positionValue >= bracket.notionalFloor &&
+            positionValue < bracket.notionalCap
+        ) || binanceBrackets[binanceBrackets.length - 1];
+      maintenanceRate = `${(tier.maintMarginRatio * 100).toFixed(4)}%`;
     }
 
     return {
       positionValue,
       initialMargin,
-      maintenanceRate
-    }
-  }, [entryPrice, quantity, leverage, binanceBrackets])
+      maintenanceRate,
+    };
+  }, [entryPrice, quantity, leverage, binanceBrackets]);
 
   const handleCalculate = () => {
     if (!validateInputs()) {
-      setLiquidationPrice(null)
-      return
+      setLiquidationPrice(null);
+      return;
     }
-    
-    const tiers = binanceBrackets
-      ? binanceBrackets.map((bracket) => ({
-          minNotional: bracket.notionalFloor,
-          maxNotional: bracket.notionalCap,
-          maintenanceMarginRate: bracket.maintMarginRatio,
-          maintenanceAmount: bracket.cum,
-          maxLeverage: bracket.initialLeverage,
-        }))
-      : undefined
+
+    if (!binanceBrackets || binanceBrackets.length === 0) {
+      setApiError(
+        "Cannot calculate without leverage bracket data. Please try again."
+      );
+      setLiquidationPrice(null);
+      return;
+    }
+
+    const tiers = binanceBrackets.map((bracket) => ({
+      minNotional: bracket.notionalFloor,
+      maxNotional: bracket.notionalCap,
+      maintenanceMarginRate: bracket.maintMarginRatio,
+      maintenanceAmount: bracket.cum,
+      maxLeverage: bracket.initialLeverage,
+    }));
 
     const result = calculateLiquidationPrice({
       side,
@@ -174,21 +203,29 @@ export function LiquidationCalculator() {
       marginMode,
       tiers, // Pass real-time tiers from Binance
       symbol: selectedSymbol, // Pass selected symbol for logging
-    })
-    setLiquidationPrice(result)
-  }
+    });
+    setLiquidationPrice(result);
+  };
 
   // Only validate leverage limits, don't auto-calculate
   useEffect(() => {
     if (leverage > maxLeverage) {
-      setLeverage(maxLeverage)
+      setLeverage(maxLeverage);
     }
-  }, [leverage, maxLeverage])
+  }, [leverage, maxLeverage]);
 
   // Clear liquidation price when inputs change (so user knows to recalculate)
   useEffect(() => {
-    setLiquidationPrice(null)
-  }, [side, leverage, entryPrice, quantity, balance, marginMode, selectedSymbol])
+    setLiquidationPrice(null);
+  }, [
+    side,
+    leverage,
+    entryPrice,
+    quantity,
+    balance,
+    marginMode,
+    selectedSymbol,
+  ]);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr,400px]">
@@ -207,21 +244,42 @@ export function LiquidationCalculator() {
           </div>
         )}
 
-        {!isLoadingBrackets && binanceBrackets && !apiError && (
-          <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-sm text-success-foreground flex items-center gap-2">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            {selectedSymbol === "BTCUSDT" 
-              ? "Using real Binance BTCUSDT leverage brackets" 
-              : "Using default leverage brackets (BTCUSDT-based)"}
-          </div>
-        )}
+        {!isLoadingBrackets &&
+          binanceBrackets &&
+          binanceBrackets.length > 0 &&
+          !apiError && (
+            <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-sm text-success-foreground flex items-center gap-2">
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Using real-time leverage brackets from Sprite Flow API
+            </div>
+          )}
 
         {apiError && (
           <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive-foreground flex items-center gap-2">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             {apiError}
           </div>
@@ -231,7 +289,10 @@ export function LiquidationCalculator() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label className="text-muted-foreground">Margin Mode</Label>
-            <Select value={marginMode} onValueChange={(v: any) => setMarginMode(v)}>
+            <Select
+              value={marginMode}
+              onValueChange={(v: any) => setMarginMode(v)}
+            >
               <SelectTrigger className="bg-card border-border">
                 <SelectValue />
               </SelectTrigger>
@@ -244,7 +305,10 @@ export function LiquidationCalculator() {
 
           <div className="space-y-2">
             <Label className="text-muted-foreground">Position Mode</Label>
-            <Select value={positionMode} onValueChange={(v: any) => setPositionMode(v)}>
+            <Select
+              value={positionMode}
+              onValueChange={(v: any) => setPositionMode(v)}
+            >
               <SelectTrigger className="bg-card border-border">
                 <SelectValue />
               </SelectTrigger>
@@ -298,7 +362,9 @@ export function LiquidationCalculator() {
               >
                 −
               </Button>
-              <span className="text-xl font-bold w-16 text-center">{leverage}x</span>
+              <span className="text-xl font-bold w-16 text-center">
+                {leverage}x
+              </span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -327,7 +393,9 @@ export function LiquidationCalculator() {
           </div>
           <p className="text-sm text-muted-foreground">
             Maximum position at current leverage:{" "}
-            <span className="text-foreground font-medium">{maxPosition.toLocaleString()} USDT</span>
+            <span className="text-foreground font-medium">
+              {maxPosition.toLocaleString()} USDT
+            </span>
           </p>
         </div>
 
@@ -342,12 +410,18 @@ export function LiquidationCalculator() {
               type="number"
               value={entryPrice}
               onChange={(e) => setEntryPrice(e.target.value)}
-              className={`bg-card border-border pr-16 text-right ${validationErrors.entryPrice ? 'border-destructive' : ''}`}
+              className={`bg-card border-border pr-16 text-right ${
+                validationErrors.entryPrice ? "border-destructive" : ""
+              }`}
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">USDT</span>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+              USDT
+            </span>
           </div>
           {validationErrors.entryPrice && (
-            <p className="text-xs text-destructive">{validationErrors.entryPrice}</p>
+            <p className="text-xs text-destructive">
+              {validationErrors.entryPrice}
+            </p>
           )}
         </div>
 
@@ -363,12 +437,20 @@ export function LiquidationCalculator() {
               step="0.001"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className={`bg-card border-border pr-16 text-right border-2 ${validationErrors.quantity ? 'border-destructive' : 'border-primary'}`}
+              className={`bg-card border-border pr-16 text-right border-2 ${
+                validationErrors.quantity
+                  ? "border-destructive"
+                  : "border-primary"
+              }`}
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">{baseAsset}</span>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+              {baseAsset}
+            </span>
           </div>
           {validationErrors.quantity && (
-            <p className="text-xs text-destructive">{validationErrors.quantity}</p>
+            <p className="text-xs text-destructive">
+              {validationErrors.quantity}
+            </p>
           )}
         </div>
 
@@ -383,12 +465,18 @@ export function LiquidationCalculator() {
               type="number"
               value={balance}
               onChange={(e) => setBalance(e.target.value)}
-              className={`bg-card border-border pr-16 text-right ${validationErrors.balance ? 'border-destructive' : ''}`}
+              className={`bg-card border-border pr-16 text-right ${
+                validationErrors.balance ? "border-destructive" : ""
+              }`}
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">USDT</span>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+              USDT
+            </span>
           </div>
           {validationErrors.balance && (
-            <p className="text-xs text-destructive">{validationErrors.balance}</p>
+            <p className="text-xs text-destructive">
+              {validationErrors.balance}
+            </p>
           )}
         </div>
 
@@ -396,7 +484,12 @@ export function LiquidationCalculator() {
         <Button
           type="button"
           onClick={handleCalculate}
-          disabled={isLoadingBrackets || Object.keys(validationErrors).length > 0}
+          disabled={
+            isLoadingBrackets ||
+            Object.keys(validationErrors).length > 0 ||
+            !binanceBrackets ||
+            binanceBrackets.length === 0
+          }
           className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed h-12 text-base font-semibold transition-all duration-200"
         >
           {isLoadingBrackets ? (
@@ -404,6 +497,8 @@ export function LiquidationCalculator() {
               <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
               Loading...
             </div>
+          ) : !binanceBrackets || binanceBrackets.length === 0 ? (
+            "No Data Available"
           ) : liquidationPrice === null ? (
             "Calculate Liquidation Price"
           ) : (
@@ -423,14 +518,18 @@ export function LiquidationCalculator() {
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm text-muted-foreground">Liquidation Price</div>
-            <div className={`text-3xl font-bold ${
-              liquidationPrice !== null 
-                ? side === "long" 
-                  ? "text-destructive" 
-                  : "text-success"
-                : "text-muted-foreground"
-            }`}>
+            <div className="text-sm text-muted-foreground">
+              Liquidation Price
+            </div>
+            <div
+              className={`text-3xl font-bold ${
+                liquidationPrice !== null
+                  ? side === "long"
+                    ? "text-destructive"
+                    : "text-success"
+                  : "text-muted-foreground"
+              }`}
+            >
               {liquidationPrice !== null
                 ? `${liquidationPrice.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
@@ -440,7 +539,8 @@ export function LiquidationCalculator() {
             </div>
             {liquidationPrice === null && (
               <div className="text-xs text-muted-foreground">
-                Enter your position details and click Calculate to see the liquidation price
+                Enter your position details and click Calculate to see the
+                liquidation price
               </div>
             )}
           </div>
@@ -452,20 +552,22 @@ export function LiquidationCalculator() {
                 {currentPrice.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
-                })} USDT
+                })}{" "}
+                USDT
               </div>
             </div>
           )}
 
           <div className="pt-4 border-t border-border space-y-2">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              * Your open positions will be taken into consideration when calculating the liquidation price. Unrealized
-              PNL and maintenance margin of your open position will affect the calculation of liquidation price.
+              * Your open positions will be taken into consideration when
+              calculating the liquidation price. Unrealized PNL and maintenance
+              margin of your open position will affect the calculation of
+              liquidation price.
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              ** {selectedSymbol === "BTCUSDT" 
-                ? "Calculations use real Binance BTCUSDT leverage brackets." 
-                : "Calculations use default leverage brackets. For accurate results on other pairs, please verify with official Binance futures calculator."}
+              ** Calculations require real-time leverage brackets from Sprite
+              Flow API. Ensure API connection is available for accurate results.
             </p>
           </div>
         </div>
@@ -496,9 +598,11 @@ export function LiquidationCalculator() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Position Side:</span>
-              <span className={`font-medium capitalize ${
-                side === "long" ? "text-success" : "text-destructive"
-              }`}>
+              <span
+                className={`font-medium capitalize ${
+                  side === "long" ? "text-success" : "text-destructive"
+                }`}
+              >
                 {side}
               </span>
             </div>
@@ -516,5 +620,5 @@ export function LiquidationCalculator() {
         </div>
       </div>
     </div>
-  )
+  );
 }
