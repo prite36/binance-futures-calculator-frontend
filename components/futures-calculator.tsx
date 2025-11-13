@@ -15,13 +15,15 @@ export function FuturesCalculator() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="border-b border-border bg-card">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="text-primary cursor-default">
+            <Button variant="ghost" size="icon" className="text-primary cursor-default hover:bg-primary/10">
               <Home className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold">Futures Calculator</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+              Futures Calculator
+            </h1>
           </div>
         </div>
       </header>
@@ -29,19 +31,23 @@ export function FuturesCalculator() {
 
 
       {/* Tabs */}
-      <div className="border-b border-border bg-card">
+      <div className="border-b border-border bg-card/30 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="flex gap-8">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative py-4 text-sm font-medium transition-colors cursor-pointer ${
-                  activeTab === tab.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                className={`relative py-4 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  activeTab === tab.id 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground hover:scale-105"
                 }`}
               >
                 {tab.label}
-                {activeTab === tab.id && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+                {activeTab === tab.id && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-accent rounded-full" />
+                )}
               </button>
             ))}
           </div>
@@ -49,7 +55,7 @@ export function FuturesCalculator() {
       </div>
 
       {/* Calculator Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 bg-gradient-to-br from-background via-background to-card/20">
         {activeTab === "multi-position" && <MultiPositionCalculator />}
       </div>
     </div>

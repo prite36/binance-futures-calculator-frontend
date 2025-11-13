@@ -1,79 +1,61 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Euler Finance inspired dark theme - always dark */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Very dark navy background like Euler Finance */
+  --background: #0a0e1a;
+  --foreground: #e2e8f0;
+  
+  /* Cards with subtle dark blue tint */
+  --card: #0f1629;
+  --card-foreground: #e2e8f0;
+  
+  /* Popover same as card */
+  --popover: #0f1629;
+  --popover-foreground: #e2e8f0;
+  
+  /* Primary blue accent like Euler */
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  
+  /* Secondary darker blue */
+  --secondary: #1e293b;
+  --secondary-foreground: #cbd5e1;
+  
+  /* Muted backgrounds */
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  
+  /* Accent similar to primary */
+  --accent: #1e40af;
+  --accent-foreground: #ffffff;
+  
+  /* Destructive red */
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  
+  /* Success green */
+  --success: #10b981;
+  --success-foreground: #ffffff;
+  
+  /* Borders subtle */
+  --border: #334155;
+  --input: #1e293b;
+  --ring: #3b82f6;
+  
+  /* Charts */
+  --chart-1: #3b82f6;
+  --chart-2: #10b981;
+  --chart-3: #f59e0b;
+  --chart-4: #ef4444;
+  --chart-5: #8b5cf6;
+  
+  --radius: 0.5rem;
 }
 
 @theme inline {
-  /* Binance-inspired dark theme */
+  /* Euler Finance inspired dark theme */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
@@ -95,46 +77,46 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
 
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
-
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 body {
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - Euler Finance style */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-background);
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-muted);
-  border-radius: 4px;
+  background: var(--border);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-muted-foreground);
+  background: var(--muted-foreground);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--background);
 }
 
 @layer base {
@@ -142,6 +124,131 @@ body {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Euler Finance inspired table styling */
+  table {
+    @apply border-separate border-spacing-0;
+  }
+  
+  /* Enhanced button hover effects */
+  button:not(:disabled):hover {
+    @apply transition-all duration-200;
+  }
+  
+  /* Input focus styling */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply ring-2 ring-primary/20 border-primary/50;
+  }
+  
+  /* Card hover effects */
+  .card-hover:hover {
+    @apply shadow-lg shadow-primary/5 border-primary/20;
+  }
+}
+
+/* Additional utility classes for Euler Finance style */
+@layer utilities {
+  .text-success {
+    color: var(--success);
+  }
+  
+  .text-success-foreground {
+    color: var(--success-foreground);
+  }
+  
+  .bg-success {
+    background-color: var(--success);
+  }
+  
+  .bg-success-foreground {
+    background-color: var(--success-foreground);
+  }
+  
+  .border-success {
+    border-color: var(--success);
+  }
+  
+  .euler-gradient {
+    background: linear-gradient(135deg, var(--card) 0%, var(--muted) 100%);
+  }
+  
+  .euler-border {
+    border: 1px solid var(--border);
+    background: var(--card);
+  }
+  
+  .euler-table-row:hover {
+    background-color: var(--muted);
+  }
+  
+  /* Clean number input styling */
+  .clean-number-input {
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: none;
+  }
+  
+  .clean-number-input::-webkit-outer-spin-button,
+  .clean-number-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    display: none;
+  }
+}
+
+/* 
+ * Remove number input spinners and disable mouse wheel scrolling
+ * This provides a cleaner UX for trading interfaces where accidental
+ * value changes from mouse wheel scrolling should be prevented
+ */
+@layer base {
+  /* Hide Chrome, Safari, Edge spinners */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    display: none;
+  }
+  
+  /* Hide Firefox spinners */
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  
+  /* Ensure no spinners appear on focus */
+  input[type="number"]:focus {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  
+  /* Custom class for number inputs without spinners */
+  .no-spinner::-webkit-outer-spin-button,
+  .no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  .no-spinner {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  
+  /* Ensure no spinner shows on hover or focus */
+  .no-spinner:hover::-webkit-outer-spin-button,
+  .no-spinner:hover::-webkit-inner-spin-button,
+  .no-spinner:focus::-webkit-outer-spin-button,
+  .no-spinner:focus::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    display: none;
+    opacity: 0;
   }
 }

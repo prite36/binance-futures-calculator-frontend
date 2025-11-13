@@ -10,6 +10,7 @@ import { PositionTable } from "@/components/position-table";
 import { ResultsSummary } from "@/components/results-summary";
 import { calculateLiquidationPrice } from "@/lib/liquidation-formula";
 import { useTradingData } from "@/hooks/use-trading-data";
+import { useDisableNumberInputScroll } from "@/hooks/use-disable-number-input-scroll";
 
 interface Position {
   id: string;
@@ -67,6 +68,9 @@ export function MultiPositionCalculator() {
     isLoadingBrackets,
     apiError,
   } = useTradingData(selectedSymbol);
+
+  // Disable mouse wheel scrolling on number inputs
+  useDisableNumberInputScroll();
 
   // Extract base asset from symbol
   const baseAsset = selectedSymbol.replace("USDT", "");
@@ -460,8 +464,8 @@ export function MultiPositionCalculator() {
   return (
     <div className="space-y-8">
       {/* Configuration Panel */}
-      <div className="rounded-lg bg-card border border-border p-6 space-y-6 transition-all duration-200 hover:shadow-md">
-        <h2 className="text-xl font-semibold">Configuration</h2>
+      <div className="rounded-lg euler-border p-6 space-y-6 transition-all duration-200 card-hover backdrop-blur-sm">
+        <h2 className="text-xl font-semibold text-primary">Configuration</h2>
 
         {/* Trading Pair Selector */}
         <TradingPairSelector
@@ -479,11 +483,11 @@ export function MultiPositionCalculator() {
 
         {apiError && (
           <div
-            className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive-foreground flex items-center gap-2"
+            className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive flex items-center gap-2 backdrop-blur-sm"
             role="alert"
           >
             <svg
-              className="h-4 w-4"
+              className="h-4 w-4 text-destructive"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -499,7 +503,7 @@ export function MultiPositionCalculator() {
             <span>{apiError}</span>
             <button
               onClick={() => window.location.reload()}
-              className="ml-auto text-xs underline hover:no-underline cursor-pointer"
+              className="ml-auto text-xs underline hover:no-underline cursor-pointer text-destructive hover:text-destructive/80"
               aria-label="รีเฟรชหน้าเว็บ"
             >
               ลองใหม่
@@ -510,12 +514,12 @@ export function MultiPositionCalculator() {
         {/* Success Message */}
         {showSuccessMessage && (
           <div
-            className="rounded-lg bg-success/10 border border-success/20 p-3 text-sm text-success-foreground flex items-center gap-2 animate-in slide-in-from-top-2"
+            className="rounded-lg bg-success/10 border border-success/30 p-3 text-sm text-success flex items-center gap-2 animate-in slide-in-from-top-2 backdrop-blur-sm"
             role="status"
             aria-live="polite"
           >
             <svg
-              className="h-4 w-4"
+              className="h-4 w-4 text-success"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -530,7 +534,7 @@ export function MultiPositionCalculator() {
             </svg>
             คำนวณเสร็จสิ้น! ตรวจสอบผลลัพธ์ด้านล่าง
             {isEnterPressed && (
-              <span className="ml-auto text-xs opacity-75">
+              <span className="ml-auto text-xs opacity-75 text-success">
                 ⌨️ Enter key
               </span>
             )}
@@ -547,8 +551,8 @@ export function MultiPositionCalculator() {
                 onClick={() => setPositionSide("long")}
                 className={`py-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
                   positionSide === "long"
-                    ? "bg-green-600 text-white shadow-sm"
-                    : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    ? "bg-success text-success-foreground shadow-lg shadow-success/20"
+                    : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105"
                 }`}
               >
                 Long
@@ -558,8 +562,8 @@ export function MultiPositionCalculator() {
                 onClick={() => setPositionSide("short")}
                 className={`py-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
                   positionSide === "short"
-                    ? "bg-red-600 text-white shadow-sm"
-                    : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    ? "bg-destructive text-destructive-foreground shadow-lg shadow-destructive/20"
+                    : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105"
                 }`}
               >
                 Short
@@ -588,7 +592,7 @@ export function MultiPositionCalculator() {
                   const value = parseInt(e.target.value) || 1;
                   setLeverage(Math.min(Math.max(1, value), maxLeverage));
                 }}
-                className="text-center font-bold text-lg h-8 w-20"
+                className="text-center font-bold text-lg h-8 w-20 no-spinner"
                 min={1}
                 max={maxLeverage}
               />
@@ -652,7 +656,7 @@ export function MultiPositionCalculator() {
                   const value = e.target.value;
                   setBalance(value === "" ? 0 : Number.parseFloat(value));
                 }}
-                className="bg-card border-border pr-16 text-right"
+                className="bg-card border-border pr-16 text-right no-spinner"
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
                 USDT
@@ -666,7 +670,7 @@ export function MultiPositionCalculator() {
             <Button
               onClick={handleCalculate}
               disabled={!canCalculate || isCalculating}
-              className={`w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed ${
+              className={`w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-primary/90 hover:to-accent/90 disabled:opacity-50 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:shadow-primary/20 ${
                 isEnterPressed ? 'ring-2 ring-primary/50 scale-[0.98]' : ''
               }`}
               aria-describedby={
@@ -701,9 +705,9 @@ export function MultiPositionCalculator() {
       </div>
 
       {/* Position Table */}
-      <div className="rounded-lg bg-card border border-border p-6 transition-all duration-200 hover:shadow-md">
+      <div className="rounded-lg euler-border p-6 transition-all duration-200 card-hover backdrop-blur-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Positions</h3>
+          <h3 className="text-lg font-semibold text-primary">Positions</h3>
           
           {/* Unit Preference Selector */}
           <div className="flex items-center gap-2">
@@ -785,13 +789,14 @@ export function MultiPositionCalculator() {
           positionSide={positionSide}
           unitPreference={unitPreference}
           leverage={leverage}
+          currentPrice={currentPrice}
         />
       </div>
 
       {/* Results Summary */}
       {summary && (
-        <div className="rounded-lg bg-card border border-border p-6 transition-all duration-300 animate-in slide-in-from-bottom-4 hover:shadow-md">
-          <h3 className="text-lg font-semibold mb-4">Summary</h3>
+        <div className="rounded-lg euler-border p-6 transition-all duration-300 animate-in slide-in-from-bottom-4 card-hover backdrop-blur-sm">
+          <h3 className="text-lg font-semibold mb-4 text-primary">Summary</h3>
           <ResultsSummary
             summary={summary}
             riskAnalysis={riskAnalysis}

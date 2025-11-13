@@ -94,7 +94,7 @@ export function TradingPairSelector({ selectedSymbol, onSymbolChange, className 
     return (
       <div className={`space-y-2 ${className}`}>
         <Label className="text-muted-foreground">Trading Pair</Label>
-        <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive-foreground flex items-center gap-2">
+        <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive flex items-center gap-2 backdrop-blur-sm">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -123,7 +123,7 @@ export function TradingPairSelector({ selectedSymbol, onSymbolChange, className 
 
         {/* Dropdown Content */}
         {isOpen && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md border bg-card shadow-lg">
+          <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md euler-border shadow-xl backdrop-blur-md">
             {/* Search Input */}
             <div className="p-3 border-b">
               <div className="relative">

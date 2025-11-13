@@ -23,6 +23,7 @@ interface PositionTableProps {
   positionSide: "long" | "short";
   unitPreference: 'quantity' | 'orderSize' | 'initialMargin';
   leverage: number;
+  currentPrice?: number | null;
 }
 
 interface PositionRowProps {
@@ -35,6 +36,7 @@ interface PositionRowProps {
   positionSide: "long" | "short";
   unitPreference: 'quantity' | 'orderSize' | 'initialMargin';
   leverage: number;
+  currentPrice?: number | null;
 }
 
 function PositionRow({
@@ -47,6 +49,7 @@ function PositionRow({
   positionSide,
   unitPreference,
   leverage,
+  currentPrice,
 }: PositionRowProps) {
   
   // Helper function to get input label and placeholder
@@ -114,20 +117,40 @@ function PositionRow({
     }
   };
   return (
-    <tr className="border-t border-border hover:bg-muted/25 transition-colors duration-200">
-      <td className="p-3 text-sm font-medium text-center">{index}</td>
+    <tr className="border-t border-border hover:bg-muted/25 transition-all duration-200 euler-table-row">
+      <td className="p-3 text-sm font-medium text-center text-primary">{index}</td>
       <td className="p-3">
-        <Input
-          type="number"
-          value={position.orderPrice}
-          onChange={(e) =>
-            onPositionChange(position.id, "orderPrice", e.target.value)
-          }
-          placeholder="0.00"
-          className="text-right bg-card border-border transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-          step="0.01"
-          aria-label={`Order price for position ${index}`}
-        />
+        <div className="relative">
+          <Input
+            type="number"
+            value={position.orderPrice}
+            onChange={(e) =>
+              onPositionChange(position.id, "orderPrice", e.target.value)
+            }
+            placeholder="0.00"
+            className="text-right bg-card border-border transition-all duration-200 focus:ring-2 focus:ring-primary/20 no-spinner pr-[4.75rem]"
+            step="0.01"
+            aria-label={`Order price for position ${index}`}
+          />
+          {currentPrice && (
+            <button
+              type="button"
+              onClick={() => onPositionChange(position.id, "orderPrice", currentPrice.toString())}
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 border border-primary/20 hover:border-primary/40 font-medium shadow-sm hover:shadow-md"
+              title={`Use current price: ${currentPrice.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}`}
+            >
+              <span className="flex items-center gap-1.5">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                Last
+              </span>
+            </button>
+          )}
+        </div>
       </td>
       <td className="p-3">
         <Input
@@ -136,7 +159,7 @@ function PositionRow({
           onChange={(e) => handleInputChange(e.target.value)}
           placeholder={inputConfig.placeholder}
           step={inputConfig.step}
-          className="text-right bg-card border-border transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+          className="text-right bg-card border-border transition-all duration-200 focus:ring-2 focus:ring-primary/20 no-spinner"
           aria-label={`${inputConfig.label} for position ${index}`}
         />
       </td>
@@ -193,13 +216,14 @@ function MobilePositionTable({
   positionSide,
   unitPreference,
   leverage,
+  currentPrice,
 }: PositionTableProps) {
   return (
     <div className="space-y-4 md:hidden">
       {positions.map((position, index) => (
         <div
           key={position.id}
-          className="rounded-lg border border-border p-4 space-y-3"
+          className="rounded-lg euler-border p-4 space-y-3 backdrop-blur-sm"
         >
           <div className="flex items-center justify-between">
             <span className="font-medium">Position {index + 1}</span>
@@ -217,12 +241,40 @@ function MobilePositionTable({
 
           <div className="grid gap-3">
             <div>
-              <label
-                className="text-xs text-muted-foreground"
-                htmlFor={`order-price-${position.id}`}
-              >
-                Order Price (USDT)
-              </label>
+              <div className="flex items-center justify-between">
+                <label
+                  className="text-xs text-muted-foreground"
+                  htmlFor={`order-price-${position.id}`}
+                >
+                  Order Price (USDT)
+                </label>
+                {currentPrice && (
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="text-xs text-muted-foreground">
+                      Current: {currentPrice.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onPositionChange(position.id, "orderPrice", currentPrice.toString())}
+                      className="px-3 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-all duration-200 cursor-pointer border border-primary/20 hover:border-primary/40 font-medium shadow-sm hover:shadow-md active:scale-95"
+                      title={`Use current price: ${currentPrice.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        Use Last Price
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
               <Input
                 id={`order-price-${position.id}`}
                 type="number"
@@ -230,7 +282,7 @@ function MobilePositionTable({
                 onChange={(e) =>
                   onPositionChange(position.id, "orderPrice", e.target.value)
                 }
-                className="text-right bg-card border-border mt-1"
+                className="text-right bg-card border-border mt-1 no-spinner"
                 step="0.01"
               />
             </div>
@@ -276,7 +328,7 @@ function MobilePositionTable({
                     onPositionChange(position.id, 'quantity', '');
                   }
                 }}
-                className="text-right bg-card border-border mt-1"
+                className="text-right bg-card border-border mt-1 no-spinner"
                 step={unitPreference === 'quantity' ? '0.001' : '0.01'}
                 placeholder={unitPreference === 'quantity' ? '0.000' : '0.00'}
               />
@@ -334,19 +386,35 @@ export function PositionTable({
   positionSide,
   unitPreference,
   leverage,
+  currentPrice,
 }: PositionTableProps) {
   return (
     <>
       {/* Desktop Table */}
-      <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+      <div className="hidden md:block rounded-lg euler-border overflow-hidden backdrop-blur-sm">
         <table className="w-full" role="table" aria-label="Position table">
-          <thead className="bg-muted/50">
+          <thead className="bg-muted/30 backdrop-blur-sm">
             <tr>
               <th className="text-center p-3 text-sm font-medium" scope="col">
                 #
               </th>
               <th className="text-left p-3 text-sm font-medium" scope="col">
                 Order Price (USDT)
+                {currentPrice ? (
+                  <div className="text-xs text-muted-foreground font-normal mt-1 flex items-center gap-2">
+                    <span>Current: {currentPrice.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}</span>
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-primary/10 text-primary">
+                      Live
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground font-normal mt-1">
+                    Loading price...
+                  </div>
+                )}
               </th>
               <th className="text-left p-3 text-sm font-medium" scope="col">
                 {unitPreference === 'quantity' && `Size (${baseAsset})`}
@@ -374,6 +442,7 @@ export function PositionTable({
                 positionSide={positionSide}
                 unitPreference={unitPreference}
                 leverage={leverage}
+                currentPrice={currentPrice}
               />
             ))}
             <tr>
@@ -401,6 +470,7 @@ export function PositionTable({
         positionSide={positionSide}
         unitPreference={unitPreference}
         leverage={leverage}
+        currentPrice={currentPrice}
       />
     </>
   );

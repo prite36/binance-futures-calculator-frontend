@@ -60,9 +60,9 @@ export function ResultsSummary({
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-lg bg-card border border-border p-4">
+        <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
           <div className="text-sm text-muted-foreground">Total Position Size</div>
-          <div className="text-xl font-bold">
+          <div className="text-xl font-bold text-primary">
             {summary.totalPositionSize.toLocaleString(undefined, {
               minimumFractionDigits: 3,
               maximumFractionDigits: 3,
@@ -70,9 +70,9 @@ export function ResultsSummary({
           </div>
         </div>
         
-        <div className="rounded-lg bg-card border border-border p-4">
+        <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
           <div className="text-sm text-muted-foreground">Average Entry Price</div>
-          <div className="text-xl font-bold">
+          <div className="text-xl font-bold text-primary">
             {summary.averageEntryPrice.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
@@ -80,7 +80,7 @@ export function ResultsSummary({
           </div>
         </div>
         
-        <div className="rounded-lg bg-card border border-border p-4">
+        <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
           <div className="text-sm text-muted-foreground">Final Liquidation Price</div>
           <div className={`text-xl font-bold ${
             summary.finalLiquidationPrice > 0 
@@ -100,9 +100,9 @@ export function ResultsSummary({
 
       {/* Additional Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg bg-card border border-border p-4">
+        <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
           <div className="text-sm text-muted-foreground">Total Margin Used</div>
-          <div className="text-lg font-bold">
+          <div className="text-lg font-bold text-primary">
             {summary.totalMarginUsed.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
@@ -110,9 +110,9 @@ export function ResultsSummary({
           </div>
         </div>
         
-        <div className="rounded-lg bg-card border border-border p-4">
+        <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
           <div className="text-sm text-muted-foreground">Remaining Balance</div>
-          <div className="text-lg font-bold">
+          <div className="text-lg font-bold text-primary">
             {summary.remainingBalance.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
@@ -121,9 +121,9 @@ export function ResultsSummary({
         </div>
 
         {currentPrice && (
-          <div className="rounded-lg bg-card border border-border p-4">
+          <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
             <div className="text-sm text-muted-foreground">Current Price</div>
-            <div className="text-lg font-bold">
+            <div className="text-lg font-bold text-primary">
               {currentPrice.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
@@ -133,9 +133,9 @@ export function ResultsSummary({
         )}
 
         {currentPrice && summary.finalLiquidationPrice > 0 && (
-          <div className="rounded-lg bg-card border border-border p-4">
+          <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
             <div className="text-sm text-muted-foreground">Distance to Liquidation</div>
-            <div className="text-lg font-bold">
+            <div className="text-lg font-bold text-primary">
               {(Math.abs(currentPrice - summary.finalLiquidationPrice) / currentPrice * 100).toFixed(2)}%
             </div>
           </div>
@@ -175,8 +175,8 @@ export function ResultsSummary({
       )}
 
       {/* Position Value Breakdown */}
-      <div className="rounded-lg bg-card border border-border p-4">
-        <h4 className="font-semibold text-sm mb-3">Position Breakdown</h4>
+      <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
+        <h4 className="font-semibold text-sm mb-3 text-primary">Position Breakdown</h4>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Position Value:</span>
