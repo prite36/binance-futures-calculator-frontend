@@ -18,7 +18,7 @@ export function FuturesCalculator() {
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="text-primary">
+            <Button variant="ghost" size="icon" className="text-primary cursor-default">
               <Home className="h-5 w-5" />
             </Button>
             <h1 className="text-2xl font-bold">Futures Calculator</h1>
@@ -36,7 +36,7 @@ export function FuturesCalculator() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative py-4 text-sm font-medium transition-colors ${
+                className={`relative py-4 text-sm font-medium transition-colors cursor-pointer ${
                   activeTab === tab.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                 }`}
               >

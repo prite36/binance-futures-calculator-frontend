@@ -14,7 +14,9 @@ import { useTradingData } from "@/hooks/use-trading-data";
 interface Position {
   id: string;
   orderPrice: string;
-  quantity: string;
+  inputValue: string; // ค่าที่ผู้ใช้ป้อน (quantity, order size, หรือ initial margin)
+  inputType: 'quantity' | 'orderSize' | 'initialMargin'; // ประเภทของ input
+  quantity: string; // จำนวนเหรียญที่คำนวณได้
   liquidationPrice?: number;
   error?: string;
 }
@@ -48,12 +50,14 @@ export function MultiPositionCalculator() {
   const [positionSide, setPositionSide] = useState<"long" | "short">("long");
   const [balance, setBalance] = useState(5000);
   const [positions, setPositions] = useState<Position[]>([
-    { id: "1", orderPrice: "", quantity: "" },
+    { id: "1", orderPrice: "", inputValue: "", inputType: "quantity", quantity: "" },
   ]);
+  const [unitPreference, setUnitPreference] = useState<'quantity' | 'orderSize' | 'initialMargin'>('quantity');
   const [isCalculating, setIsCalculating] = useState(false);
   const [summary, setSummary] = useState<PositionSummary | null>(null);
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [isEnterPressed, setIsEnterPressed] = useState(false);
 
   // Use shared trading data hook
   const {
@@ -79,9 +83,9 @@ export function MultiPositionCalculator() {
     const newId = (positions.length + 1).toString();
     setPositions((prev) => [
       ...prev,
-      { id: newId, orderPrice: "", quantity: "" },
+      { id: newId, orderPrice: "", inputValue: "", inputType: unitPreference, quantity: "" },
     ]);
-  }, [positions.length]);
+  }, [positions.length, unitPreference]);
 
   // Remove position
   const removePosition = useCallback((id: string) => {
@@ -419,6 +423,40 @@ export function MultiPositionCalculator() {
     setRiskAnalysis(null);
   }, [selectedSymbol]);
 
+  // Handle keyboard events
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check if Enter key is pressed and not in a textarea or contenteditable element
+      if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey) {
+        const target = event.target as HTMLElement;
+        
+        // Don't trigger if user is typing in an input field or textarea
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+          return;
+        }
+        
+        // Only trigger if calculate button is enabled
+        if (canCalculate && !isCalculating) {
+          event.preventDefault();
+          
+          // Add visual feedback
+          setIsEnterPressed(true);
+          setTimeout(() => setIsEnterPressed(false), 150);
+          
+          handleCalculate();
+        }
+      }
+    };
+
+    // Add event listener to document
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [canCalculate, isCalculating, handleCalculate]);
+
   return (
     <div className="space-y-8">
       {/* Configuration Panel */}
@@ -461,7 +499,7 @@ export function MultiPositionCalculator() {
             <span>{apiError}</span>
             <button
               onClick={() => window.location.reload()}
-              className="ml-auto text-xs underline hover:no-underline"
+              className="ml-auto text-xs underline hover:no-underline cursor-pointer"
               aria-label="รีเฟรชหน้าเว็บ"
             >
               ลองใหม่
@@ -491,6 +529,11 @@ export function MultiPositionCalculator() {
               />
             </svg>
             คำนวณเสร็จสิ้น! ตรวจสอบผลลัพธ์ด้านล่าง
+            {isEnterPressed && (
+              <span className="ml-auto text-xs opacity-75">
+                ⌨️ Enter key
+              </span>
+            )}
           </div>
         )}
 
@@ -533,7 +576,7 @@ export function MultiPositionCalculator() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0"
+                className="h-8 w-8 shrink-0 cursor-pointer"
                 onClick={() => setLeverage(Math.max(1, leverage - 1))}
               >
                 −
@@ -553,7 +596,7 @@ export function MultiPositionCalculator() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0"
+                className="h-8 w-8 shrink-0 cursor-pointer"
                 onClick={() => setLeverage(Math.min(maxLeverage, leverage + 1))}
               >
                 +
@@ -567,7 +610,7 @@ export function MultiPositionCalculator() {
                   key={shortcut}
                   variant={leverage === shortcut ? "default" : "outline"}
                   size="sm"
-                  className="h-6 px-2 text-xs"
+                  className="h-6 px-2 text-xs cursor-pointer"
                   onClick={() => setLeverage(shortcut)}
                 >
                   {shortcut}x
@@ -623,7 +666,9 @@ export function MultiPositionCalculator() {
             <Button
               onClick={handleCalculate}
               disabled={!canCalculate || isCalculating}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all duration-200"
+              className={`w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed ${
+                isEnterPressed ? 'ring-2 ring-primary/50 scale-[0.98]' : ''
+              }`}
               aria-describedby={
                 !canCalculate ? "calculate-button-help" : undefined
               }
@@ -634,15 +679,21 @@ export function MultiPositionCalculator() {
                   กำลังคำนวณ...
                 </div>
               ) : (
-                "คำนวณทุก Position"
+                <div className="flex items-center justify-center gap-2">
+                  <span>คำนวณทุก Position</span>
+                </div>
               )}
             </Button>
-            {!canCalculate && (
+            {!canCalculate ? (
               <div
                 id="calculate-button-help"
                 className="text-xs text-muted-foreground mt-1"
               >
                 กรุณาป้อนข้อมูล position อย่างน้อย 1 ตัวและยอดคงเหลือ
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground mt-1 text-center">
+                คลิกปุ่มหรือกด <kbd className="px-1 py-0.5 text-xs bg-muted rounded">Enter</kbd> เพื่อคำนวณ
               </div>
             )}
           </div>
@@ -651,7 +702,80 @@ export function MultiPositionCalculator() {
 
       {/* Position Table */}
       <div className="rounded-lg bg-card border border-border p-6 transition-all duration-200 hover:shadow-md">
-        <h3 className="text-lg font-semibold mb-4">Positions</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Positions</h3>
+          
+          {/* Unit Preference Selector */}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm text-muted-foreground">Unit Preference:</Label>
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setUnitPreference('quantity')}
+                className={`px-3 py-1 text-xs font-medium transition-colors cursor-pointer ${
+                  unitPreference === 'quantity'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-card text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {baseAsset}
+              </button>
+              <button
+                type="button"
+                onClick={() => setUnitPreference('orderSize')}
+                className={`px-3 py-1 text-xs font-medium transition-colors border-l border-border cursor-pointer ${
+                  unitPreference === 'orderSize'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-card text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                USDT
+              </button>
+              <button
+                type="button"
+                onClick={() => setUnitPreference('initialMargin')}
+                className={`px-3 py-1 text-xs font-medium transition-colors border-l border-border cursor-pointer ${
+                  unitPreference === 'initialMargin'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-card text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Margin
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Unit Preference Description */}
+        <div className="mb-4 p-3 rounded-lg bg-muted/20 border border-muted">
+          <div className="text-sm">
+            {unitPreference === 'quantity' && (
+              <div>
+                <span className="font-medium">{baseAsset}</span>
+                <p className="text-muted-foreground text-xs mt-1">
+                  Input and display order size in {baseAsset}.
+                </p>
+              </div>
+            )}
+            {unitPreference === 'orderSize' && (
+              <div>
+                <span className="font-medium">USDT</span>
+                <p className="text-muted-foreground text-xs mt-1">
+                  Input and display order size in USDT.
+                </p>
+              </div>
+            )}
+            {unitPreference === 'initialMargin' && (
+              <div>
+                <span className="font-medium">Initial Margin</span>
+                <p className="text-muted-foreground text-xs mt-1">
+                  To place an order using Initial Margin, enter the initial margin amount.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
         <PositionTable
           positions={positions}
           onPositionChange={updatePosition}
@@ -659,6 +783,8 @@ export function MultiPositionCalculator() {
           onRemovePosition={removePosition}
           baseAsset={baseAsset}
           positionSide={positionSide}
+          unitPreference={unitPreference}
+          leverage={leverage}
         />
       </div>
 

@@ -7,6 +7,8 @@ import { Trash2 } from "lucide-react";
 interface Position {
   id: string;
   orderPrice: string;
+  inputValue: string;
+  inputType: 'quantity' | 'orderSize' | 'initialMargin';
   quantity: string;
   liquidationPrice?: number;
   error?: string;
@@ -19,6 +21,8 @@ interface PositionTableProps {
   onRemovePosition: (id: string) => void;
   baseAsset: string;
   positionSide: "long" | "short";
+  unitPreference: 'quantity' | 'orderSize' | 'initialMargin';
+  leverage: number;
 }
 
 interface PositionRowProps {
@@ -29,6 +33,8 @@ interface PositionRowProps {
   canRemove: boolean;
   baseAsset: string;
   positionSide: "long" | "short";
+  unitPreference: 'quantity' | 'orderSize' | 'initialMargin';
+  leverage: number;
 }
 
 function PositionRow({
@@ -39,7 +45,74 @@ function PositionRow({
   canRemove,
   baseAsset,
   positionSide,
+  unitPreference,
+  leverage,
 }: PositionRowProps) {
+  
+  // Helper function to get input label and placeholder
+  const getInputConfig = () => {
+    switch (unitPreference) {
+      case 'quantity':
+        return {
+          label: `Size (${baseAsset})`,
+          placeholder: '0.000',
+          step: '0.001',
+          unit: baseAsset
+        };
+      case 'orderSize':
+        return {
+          label: 'Size (USDT)',
+          placeholder: '0.00',
+          step: '0.01',
+          unit: 'USDT'
+        };
+      case 'initialMargin':
+        return {
+          label: 'Initial Margin (USDT)',
+          placeholder: '0.00',
+          step: '0.01',
+          unit: 'USDT'
+        };
+      default:
+        return {
+          label: `Size (${baseAsset})`,
+          placeholder: '0.000',
+          step: '0.001',
+          unit: baseAsset
+        };
+    }
+  };
+
+  const inputConfig = getInputConfig();
+
+  // Handle input value change and calculate quantity
+  const handleInputChange = (value: string) => {
+    onPositionChange(position.id, 'inputValue', value);
+    
+    // Calculate quantity based on input type
+    const orderPrice = parseFloat(position.orderPrice) || 0;
+    const inputValue = parseFloat(value) || 0;
+    
+    if (orderPrice > 0 && inputValue > 0) {
+      let calculatedQuantity = 0;
+      
+      switch (unitPreference) {
+        case 'quantity':
+          calculatedQuantity = inputValue;
+          break;
+        case 'orderSize':
+          calculatedQuantity = inputValue / orderPrice;
+          break;
+        case 'initialMargin':
+          calculatedQuantity = (inputValue * leverage) / orderPrice;
+          break;
+      }
+      
+      onPositionChange(position.id, 'quantity', calculatedQuantity.toString());
+    } else {
+      onPositionChange(position.id, 'quantity', '');
+    }
+  };
   return (
     <tr className="border-t border-border hover:bg-muted/25 transition-colors duration-200">
       <td className="p-3 text-sm font-medium text-center">{index}</td>
@@ -59,14 +132,12 @@ function PositionRow({
       <td className="p-3">
         <Input
           type="number"
-          value={position.quantity}
-          onChange={(e) =>
-            onPositionChange(position.id, "quantity", e.target.value)
-          }
-          placeholder="0.000"
-          step="0.001"
+          value={position.inputValue}
+          onChange={(e) => handleInputChange(e.target.value)}
+          placeholder={inputConfig.placeholder}
+          step={inputConfig.step}
           className="text-right bg-card border-border transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-          aria-label={`Quantity for position ${index}`}
+          aria-label={`${inputConfig.label} for position ${index}`}
         />
       </td>
       <td className="p-3">
@@ -101,7 +172,7 @@ function PositionRow({
             variant="ghost"
             size="sm"
             onClick={() => onRemovePosition(position.id)}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-200 hover:scale-105"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-200 hover:scale-105 cursor-pointer"
             aria-label={`Remove position ${index}`}
           >
             <Trash2 className="h-4 w-4" />
@@ -120,6 +191,8 @@ function MobilePositionTable({
   onRemovePosition,
   baseAsset,
   positionSide,
+  unitPreference,
+  leverage,
 }: PositionTableProps) {
   return (
     <div className="space-y-4 md:hidden">
@@ -135,7 +208,7 @@ function MobilePositionTable({
                 variant="ghost"
                 size="sm"
                 onClick={() => onRemovePosition(position.id)}
-                className="text-destructive"
+                className="text-destructive cursor-pointer"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -165,19 +238,47 @@ function MobilePositionTable({
             <div>
               <label
                 className="text-xs text-muted-foreground"
-                htmlFor={`quantity-${position.id}`}
+                htmlFor={`input-${position.id}`}
               >
-                Quantity ({baseAsset})
+                {unitPreference === 'quantity' && `Size (${baseAsset})`}
+                {unitPreference === 'orderSize' && 'Size (USDT)'}
+                {unitPreference === 'initialMargin' && 'Initial Margin (USDT)'}
               </label>
               <Input
-                id={`quantity-${position.id}`}
+                id={`input-${position.id}`}
                 type="number"
-                value={position.quantity}
-                onChange={(e) =>
-                  onPositionChange(position.id, "quantity", e.target.value)
-                }
+                value={position.inputValue}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  onPositionChange(position.id, 'inputValue', value);
+                  
+                  // Calculate quantity based on input type
+                  const orderPrice = parseFloat(position.orderPrice) || 0;
+                  const inputValue = parseFloat(value) || 0;
+                  
+                  if (orderPrice > 0 && inputValue > 0) {
+                    let calculatedQuantity = 0;
+                    
+                    switch (unitPreference) {
+                      case 'quantity':
+                        calculatedQuantity = inputValue;
+                        break;
+                      case 'orderSize':
+                        calculatedQuantity = inputValue / orderPrice;
+                        break;
+                      case 'initialMargin':
+                        calculatedQuantity = (inputValue * leverage) / orderPrice;
+                        break;
+                    }
+                    
+                    onPositionChange(position.id, 'quantity', calculatedQuantity.toString());
+                  } else {
+                    onPositionChange(position.id, 'quantity', '');
+                  }
+                }}
                 className="text-right bg-card border-border mt-1"
-                step="0.001"
+                step={unitPreference === 'quantity' ? '0.001' : '0.01'}
+                placeholder={unitPreference === 'quantity' ? '0.000' : '0.00'}
               />
             </div>
 
@@ -216,7 +317,7 @@ function MobilePositionTable({
       <Button
         variant="outline"
         onClick={onAddPosition}
-        className="w-full border-dashed transition-all duration-200 hover:bg-primary/5 hover:border-primary/50"
+        className="w-full border-dashed transition-all duration-200 hover:bg-primary/5 hover:border-primary/50 cursor-pointer"
       >
         + Add Position
       </Button>
@@ -231,6 +332,8 @@ export function PositionTable({
   onRemovePosition,
   baseAsset,
   positionSide,
+  unitPreference,
+  leverage,
 }: PositionTableProps) {
   return (
     <>
@@ -246,7 +349,9 @@ export function PositionTable({
                 Order Price (USDT)
               </th>
               <th className="text-left p-3 text-sm font-medium" scope="col">
-                Quantity ({baseAsset})
+                {unitPreference === 'quantity' && `Size (${baseAsset})`}
+                {unitPreference === 'orderSize' && 'Size (USDT)'}
+                {unitPreference === 'initialMargin' && 'Initial Margin (USDT)'}
               </th>
               <th className="text-left p-3 text-sm font-medium" scope="col">
                 Liquidation Price
@@ -267,6 +372,8 @@ export function PositionTable({
                 canRemove={positions.length > 1}
                 baseAsset={baseAsset}
                 positionSide={positionSide}
+                unitPreference={unitPreference}
+                leverage={leverage}
               />
             ))}
             <tr>
@@ -274,7 +381,7 @@ export function PositionTable({
                 <Button
                   variant="outline"
                   onClick={onAddPosition}
-                  className="w-full border-dashed transition-all duration-200 hover:bg-primary/5 hover:border-primary/50"
+                  className="w-full border-dashed transition-all duration-200 hover:bg-primary/5 hover:border-primary/50 cursor-pointer"
                 >
                   + Add Position
                 </Button>
@@ -292,6 +399,8 @@ export function PositionTable({
         onRemovePosition={onRemovePosition}
         baseAsset={baseAsset}
         positionSide={positionSide}
+        unitPreference={unitPreference}
+        leverage={leverage}
       />
     </>
   );

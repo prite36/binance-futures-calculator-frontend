@@ -113,7 +113,7 @@ export function TradingPairSelector({ selectedSymbol, onSymbolChange, className 
           variant="outline"
           onClick={() => setIsOpen(!isOpen)}
           disabled={isLoading}
-          className="w-full justify-between bg-card border-border hover:bg-muted/50"
+          className="w-full justify-between bg-card border-border hover:bg-muted/50 cursor-pointer disabled:cursor-not-allowed"
         >
           <span className="font-medium">
             {isLoading ? "Loading..." : selectedSymbol || "Select trading pair"}
@@ -149,7 +149,7 @@ export function TradingPairSelector({ selectedSymbol, onSymbolChange, className 
                   <button
                     key={pair.symbol}
                     onClick={() => handleSelectPair(pair.symbol)}
-                    className={`w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between ${
+                    className={`w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between cursor-pointer ${
                       selectedSymbol === pair.symbol ? 'bg-muted' : ''
                     }`}
                   >
