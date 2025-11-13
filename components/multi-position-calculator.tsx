@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -45,15 +45,53 @@ interface MaintenanceTier {
   maxLeverage: number;
 }
 
-export function MultiPositionCalculator() {
-  const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
-  const [leverage, setLeverage] = useState(10);
-  const [positionSide, setPositionSide] = useState<"long" | "short">("long");
-  const [balance, setBalance] = useState(5000);
-  const [positions, setPositions] = useState<Position[]>([
-    { id: "1", orderPrice: "", inputValue: "", inputType: "quantity", quantity: "" },
-  ]);
-  const [unitPreference, setUnitPreference] = useState<'quantity' | 'orderSize' | 'initialMargin'>('quantity');
+interface MultiPositionCalculatorProps {
+  initialData?: {
+    tradingPair?: string;
+    side?: 'long' | 'short';
+    marginMode?: 'cross' | 'isolated';
+    leverage?: number;
+    balance?: number;
+    unitPreference?: 'quantity' | 'orderSize' | 'initialMargin';
+    positions?: Array<{
+      size: number;
+      entryPrice: number;
+    }>;
+  };
+  onCalculationComplete?: (data: {
+    tradingPair: string;
+    side: 'long' | 'short';
+    marginMode: 'cross' | 'isolated';
+    leverage: number;
+    balance: number;
+    unitPreference: 'quantity' | 'orderSize' | 'initialMargin';
+    positions: Array<{
+      size: number;
+      entryPrice: number;
+    }>;
+  }) => void;
+  hideTradingPairSelector?: boolean;
+}
+
+function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, hideTradingPairSelector = false }: MultiPositionCalculatorProps = {}) {
+
+  const [selectedSymbol, setSelectedSymbol] = useState(initialData?.tradingPair || "BTCUSDT");
+  const [leverage, setLeverage] = useState(initialData?.leverage || 10);
+  const [positionSide, setPositionSide] = useState<"long" | "short">(initialData?.side || "long");
+  const [balance, setBalance] = useState(initialData?.balance || 5000);
+  const [positions, setPositions] = useState<Position[]>(() => {
+    if (initialData?.positions && initialData.positions.length > 0) {
+      return initialData.positions.map((pos, index) => ({
+        id: (index + 1).toString(),
+        orderPrice: pos.entryPrice.toString(),
+        inputValue: pos.size.toString(),
+        inputType: initialData.unitPreference || 'quantity',
+        quantity: pos.size.toString(),
+      }));
+    }
+    return [{ id: "1", orderPrice: "", inputValue: "", inputType: "quantity", quantity: "" }];
+  });
+  const [unitPreference, setUnitPreference] = useState<'quantity' | 'orderSize' | 'initialMargin'>(initialData?.unitPreference || 'quantity');
   const [isCalculating, setIsCalculating] = useState(false);
   const [summary, setSummary] = useState<PositionSummary | null>(null);
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
@@ -391,6 +429,32 @@ export function MultiPositionCalculator() {
       // Show success message
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
+
+      // Notify parent component of successful calculation
+      if (onCalculationComplete) {
+        const validPositions = calculatedPositions
+          .filter(p => {
+            const orderPrice = parseFloat(p.orderPrice) || 0;
+            const quantity = parseFloat(p.quantity) || 0;
+            return orderPrice > 0 && quantity > 0 && !p.error;
+          })
+          .map(p => ({
+            size: parseFloat(p.quantity) || 0,
+            entryPrice: parseFloat(p.orderPrice) || 0,
+          }));
+
+        if (validPositions.length > 0) {
+          onCalculationComplete({
+            tradingPair: selectedSymbol,
+            side: positionSide,
+            marginMode: 'cross', // Default to cross for now
+            leverage,
+            balance,
+            unitPreference,
+            positions: validPositions,
+          });
+        }
+      }
     } catch (error) {
       console.error("Calculation error:", error);
       // Show error in console, but don't break the UI
@@ -407,6 +471,9 @@ export function MultiPositionCalculator() {
     calculatePositionSummary,
     analyzePositionRisk,
     currentPrice,
+    onCalculationComplete,
+    selectedSymbol,
+    unitPreference,
   ]);
 
   // Validation - memoized for performance
@@ -426,6 +493,8 @@ export function MultiPositionCalculator() {
     setSummary(null);
     setRiskAnalysis(null);
   }, [selectedSymbol]);
+
+
 
   // Handle keyboard events
   useEffect(() => {
@@ -468,10 +537,12 @@ export function MultiPositionCalculator() {
         <h2 className="text-xl font-semibold text-primary">Configuration</h2>
 
         {/* Trading Pair Selector */}
-        <TradingPairSelector
-          selectedSymbol={selectedSymbol}
-          onSymbolChange={setSelectedSymbol}
-        />
+        {!hideTradingPairSelector && (
+          <TradingPairSelector
+            selectedSymbol={selectedSymbol}
+            onSymbolChange={setSelectedSymbol}
+          />
+        )}
 
         {/* API Status */}
         {isLoadingBrackets && (
@@ -809,3 +880,5 @@ export function MultiPositionCalculator() {
     </div>
   );
 }
+
+export const MultiPositionCalculator = memo(MultiPositionCalculatorComponent);

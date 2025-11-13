@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef, memo } from "react"
 import { ChevronDown, Search } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -21,7 +21,8 @@ interface TradingPairSelectorProps {
   className?: string
 }
 
-export function TradingPairSelector({ selectedSymbol, onSymbolChange, className }: TradingPairSelectorProps) {
+function TradingPairSelectorComponent({ selectedSymbol, onSymbolChange, className }: TradingPairSelectorProps) {
+
   const [tradingPairs, setTradingPairs] = useState<TradingPair[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -64,7 +65,7 @@ export function TradingPairSelector({ selectedSymbol, onSymbolChange, className 
     } finally {
       setIsLoading(false)
     }
-  }, [selectedSymbol, onSymbolChange])
+  }, [selectedSymbol])
 
   useEffect(() => {
     fetchTradingPairs()
@@ -178,3 +179,5 @@ export function TradingPairSelector({ selectedSymbol, onSymbolChange, className 
     </div>
   )
 }
+
+export const TradingPairSelector = memo(TradingPairSelectorComponent);

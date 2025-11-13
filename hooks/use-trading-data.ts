@@ -13,6 +13,7 @@ interface TradingDataHook {
 }
 
 export function useTradingData(symbol: string): TradingDataHook {
+
   const [leverageBrackets, setLeverageBrackets] = useState<any[] | null>(null);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [maxLeverage, setMaxLeverage] = useState(150);
@@ -22,6 +23,8 @@ export function useTradingData(symbol: string): TradingDataHook {
   // Fetch leverage brackets
   const fetchBinanceBrackets = useCallback(async () => {
     if (!symbol) return;
+    
+
 
     try {
       setIsLoadingBrackets(true);
@@ -46,6 +49,8 @@ export function useTradingData(symbol: string): TradingDataHook {
   // Fetch current price
   const fetchCurrentPrice = useCallback(async () => {
     if (!symbol) return;
+    
+
 
     try {
       const response = await fetch(`/api/binance/ticker?symbol=${symbol}`);
@@ -63,7 +68,7 @@ export function useTradingData(symbol: string): TradingDataHook {
   // Fetch data when symbol changes
   useEffect(() => {
     fetchBinanceBrackets();
-  }, [fetchBinanceBrackets]);
+  }, [symbol]);
 
   useEffect(() => {
     fetchCurrentPrice();
@@ -71,7 +76,7 @@ export function useTradingData(symbol: string): TradingDataHook {
     // Update price every 30 seconds
     const interval = setInterval(fetchCurrentPrice, 30000);
     return () => clearInterval(interval);
-  }, [fetchCurrentPrice]);
+  }, [symbol]);
 
   return {
     leverageBrackets,
