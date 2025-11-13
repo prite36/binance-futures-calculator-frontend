@@ -3,16 +3,14 @@
 import { useState } from "react"
 import { Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { LiquidationCalculator } from "@/components/liquidation-calculator"
 import { MultiPositionCalculator } from "@/components/multi-position-calculator"
 
 const tabs = [
-  { id: "liquidation", label: "Liquidation Price" },
   { id: "multi-position", label: "Multi-Position Calculator" },
 ]
 
 export function FuturesCalculator() {
-  const [activeTab, setActiveTab] = useState("liquidation")
+  const [activeTab, setActiveTab] = useState("multi-position")
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -52,7 +50,6 @@ export function FuturesCalculator() {
 
       {/* Calculator Content */}
       <div className="container mx-auto px-4 py-8">
-        {activeTab === "liquidation" && <LiquidationCalculator />}
         {activeTab === "multi-position" && <MultiPositionCalculator />}
       </div>
     </div>

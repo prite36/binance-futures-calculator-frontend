@@ -502,7 +502,7 @@ export function MultiPositionCalculator() {
               <button
                 type="button"
                 onClick={() => setPositionSide("long")}
-                className={`py-3 text-sm font-medium transition-all duration-200 ${
+                className={`py-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
                   positionSide === "long"
                     ? "bg-green-600 text-white shadow-sm"
                     : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -513,7 +513,7 @@ export function MultiPositionCalculator() {
               <button
                 type="button"
                 onClick={() => setPositionSide("short")}
-                className={`py-3 text-sm font-medium transition-all duration-200 ${
+                className={`py-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
                   positionSide === "short"
                     ? "bg-red-600 text-white shadow-sm"
                     : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -525,29 +525,57 @@ export function MultiPositionCalculator() {
           </div>
 
           {/* Leverage */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label className="text-muted-foreground">Leverage</Label>
+            
+            {/* Input and +/- buttons */}
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-8 w-8 shrink-0"
                 onClick={() => setLeverage(Math.max(1, leverage - 1))}
               >
                 −
               </Button>
-              <span className="text-lg font-bold w-16 text-center">
-                {leverage}x
-              </span>
+              <Input
+                type="number"
+                value={leverage}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value) || 1;
+                  setLeverage(Math.min(Math.max(1, value), maxLeverage));
+                }}
+                className="text-center font-bold text-lg h-8 w-20"
+                min={1}
+                max={maxLeverage}
+              />
+              <span className="text-sm text-muted-foreground shrink-0">x</span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-8 w-8 shrink-0"
                 onClick={() => setLeverage(Math.min(maxLeverage, leverage + 1))}
               >
                 +
               </Button>
             </div>
+
+            {/* Shortcut buttons */}
+            <div className="flex gap-1">
+              {[2, 5, 10, 20, 50].filter(x => x <= maxLeverage).map((shortcut) => (
+                <Button
+                  key={shortcut}
+                  variant={leverage === shortcut ? "default" : "outline"}
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setLeverage(shortcut)}
+                >
+                  {shortcut}x
+                </Button>
+              ))}
+            </div>
+
+            {/* Slider */}
             <Slider
               value={[leverage]}
               onValueChange={(v) => setLeverage(v[0])}
@@ -556,6 +584,15 @@ export function MultiPositionCalculator() {
               step={1}
               className="w-full"
             />
+            
+            {/* Slider marks */}
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>1x</span>
+              <span>{Math.floor(maxLeverage * 0.25)}x</span>
+              <span>{Math.floor(maxLeverage * 0.5)}x</span>
+              <span>{Math.floor(maxLeverage * 0.75)}x</span>
+              <span>{maxLeverage}x</span>
+            </div>
           </div>
 
           {/* Balance */}
