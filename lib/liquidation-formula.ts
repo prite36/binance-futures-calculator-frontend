@@ -97,35 +97,47 @@ export function calculateLiquidationPrice(params: CalculationParams): number {
     // LONG Position Formula
     if (marginMode === "isolated") {
       // Isolated Margin Long: LP = EP - (Isolated Margin - cumB) / (Position × (1 - MMR))
-      liquidationPrice = EP - (WB - cumB) / (Position * (1 - MMR));
+      const isolatedMargin = (Position * EP) / params.leverage;
+      liquidationPrice = EP - (isolatedMargin - cumB) / (Position * (1 - MMR));
     } else {
-      // Cross Margin Long - Final Corrected Formula
+      // Cross Margin Long - Back to working formula
       // LP = EP - (WB - cumB) / (Position × (1 - MMR))
       liquidationPrice = EP - (WB - cumB) / (Position * (1 - MMR));
     }
   } else {
-    // SHORT Position Formula (Cross Margin)
-    // LP = (Position × EP + WB - TMM + UPNL - cumB) / (Position × (1 + MMR))
+    // SHORT Position Formula
     if (marginMode === "isolated") {
+      // Isolated Margin Short
       const isolatedMargin = (Position * EP) / params.leverage;
-      liquidationPrice =
-        (Position * EP + isolatedMargin - cumB) / (Position * (1 + MMR));
+      liquidationPrice = (Position * EP + isolatedMargin - cumB) / (Position * (1 + MMR));
     } else {
-      // Cross Margin Short - Corrected Formula
-      liquidationPrice =
-        (Position * EP + WB - TMM + UPNL - cumB) / (Position * (1 + MMR));
+      // Cross Margin Short
+      // LP = (Position × EP + WB - cumB) / (Position × (1 + MMR))
+      liquidationPrice = (Position * EP + WB - cumB) / (Position * (1 + MMR));
     }
   }
 
-  console.log(`[v0] Liquidation Price Calculation for ${symbol}:`);
+  console.log(`[LIQUIDATION] Calculation for ${symbol}:`);
   console.log(`  Side: ${side.toUpperCase()}`);
+  console.log(`  Margin Mode: ${marginMode.toUpperCase()}`);
   console.log(`  Entry Price: ${EP} USDT`);
   console.log(`  Quantity: ${Position} ${symbol.replace("USDT", "")}`);
   console.log(`  Balance: ${WB} USDT`);
-  console.log(`  Notional Value: ${notionalValue} USDT`);
+  console.log(`  Leverage: ${params.leverage}x`);
+  console.log(`  Notional Value: ${notionalValue.toFixed(2)} USDT`);
   console.log(`  Maintenance Margin Rate: ${MMR} (${(MMR * 100).toFixed(4)}%)`);
   console.log(`  Maintenance Amount (cum): ${cumB} USDT`);
-  console.log(`  Calculated LP: ${liquidationPrice.toFixed(2)} USDT`);
+  console.log(`  TMM: ${TMM}, UPNL: ${UPNL}`);
+  
+  if (side === "long" && marginMode === "cross") {
+    console.log(`  Formula: ${EP} - (${WB} - ${cumB}) / (${Position} × (1 - ${MMR}))`);
+    console.log(`  Calculation: ${EP} - ${WB - cumB} / ${Position * (1 - MMR)}`);
+    console.log(`  Step 1: ${WB - cumB}`);
+    console.log(`  Step 2: ${Position * (1 - MMR)}`);
+    console.log(`  Step 3: ${(WB - cumB) / (Position * (1 - MMR))}`);
+  }
+  
+  console.log(`  Calculated LP: ${liquidationPrice.toFixed(8)} USDT`);
 
   // Ensure liquidation price is positive
   return Math.max(0, liquidationPrice);

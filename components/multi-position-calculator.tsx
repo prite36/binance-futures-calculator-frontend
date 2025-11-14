@@ -78,6 +78,7 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
   const [selectedSymbol, setSelectedSymbol] = useState(initialData?.tradingPair || "BTCUSDT");
   const [leverage, setLeverage] = useState(initialData?.leverage || 10);
   const [positionSide, setPositionSide] = useState<"long" | "short">(initialData?.side || "long");
+  const [marginMode, setMarginMode] = useState<"cross" | "isolated">(initialData?.marginMode || "isolated");
   const [balance, setBalance] = useState(initialData?.balance || 5000);
   const [positions, setPositions] = useState<Position[]>(() => {
     if (initialData?.positions && initialData.positions.length > 0) {
@@ -212,6 +213,7 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
       leverage: number,
       balance: number,
       positionSide: "long" | "short",
+      marginMode: "cross" | "isolated",
       tiers: MaintenanceTier[]
     ): Position[] => {
       const calculatedPositions: Position[] = [];
@@ -266,7 +268,7 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
             entryPrice: averageEntryPrice,
             quantity: cumulativeQuantity,
             balance,
-            marginMode: "cross",
+            marginMode: marginMode,
             tiers,
             symbol: selectedSymbol,
           });
@@ -306,7 +308,7 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
 
       return calculatedPositions;
     },
-    [selectedSymbol]
+    [selectedSymbol, unitPreference]
   );
 
   // Calculate position summary
@@ -452,6 +454,7 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
         leverage,
         balance,
         positionSide,
+        marginMode,
         tiers
       );
 
@@ -493,7 +496,7 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
           onCalculationComplete({
             tradingPair: selectedSymbol,
             side: positionSide,
-            marginMode: 'cross', // Default to cross for now
+            marginMode: marginMode,
             leverage,
             balance,
             unitPreference,
@@ -513,6 +516,7 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
     leverage,
     balance,
     positionSide,
+    marginMode,
     calculatePositionLiquidationPrices,
     calculatePositionSummary,
     analyzePositionRisk,
@@ -658,7 +662,7 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
           </div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
           {/* Position Side */}
           <div className="space-y-2">
             <Label className="text-muted-foreground">Position Side</Label>
@@ -684,6 +688,35 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
                 }`}
               >
                 Short
+              </button>
+            </div>
+          </div>
+
+          {/* Margin Mode */}
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">Margin Mode</Label>
+            <div className="grid grid-cols-2 gap-0 rounded-lg overflow-hidden border border-border">
+              <button
+                type="button"
+                onClick={() => setMarginMode("isolated")}
+                className={`py-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  marginMode === "isolated"
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                    : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105"
+                }`}
+              >
+                Isolated
+              </button>
+              <button
+                type="button"
+                onClick={() => setMarginMode("cross")}
+                className={`py-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  marginMode === "cross"
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                    : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105"
+                }`}
+              >
+                Cross
               </button>
             </div>
           </div>
@@ -894,6 +927,30 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
                 </p>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Margin Mode Description */}
+        <div className="mb-4 p-3 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+          <div className="text-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-blue-700 dark:text-blue-300">
+                {marginMode === 'isolated' ? 'Isolated Margin' : 'Cross Margin'}
+              </span>
+              <span className={`px-2 py-0.5 text-xs rounded-full ${
+                marginMode === 'isolated' 
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                  : 'bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300'
+              }`}>
+                {marginMode === 'isolated' ? 'Default' : 'Advanced'}
+              </span>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              {marginMode === 'isolated' 
+                ? 'Each position uses only its allocated margin. Losses are limited to the margin assigned to that position.'
+                : 'All positions share the same margin pool. Profits from one position can offset losses from another.'
+              }
+            </p>
           </div>
         </div>
 
