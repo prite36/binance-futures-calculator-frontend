@@ -19,7 +19,6 @@ import { TradingPlan, CreateTradingPlanData } from '@/lib/types';
 import { toast } from 'sonner';
 
 export default function PlanEditorPage() {
-
   
   const router = useRouter();
   const params = useParams();
@@ -175,6 +174,11 @@ export default function PlanEditorPage() {
     }
   }, [handleSave]);
 
+  // Memoized form change handler
+  const handleFormChange = useCallback(() => {
+    setHasUnsavedChanges(true);
+  }, []);
+
   // Handle browser back button with unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -260,7 +264,7 @@ export default function PlanEditorPage() {
             onSave={handleSaveBasicInfo}
             onCancel={handleCancel}
             isLoading={isSaving}
-            onFormChange={() => setHasUnsavedChanges(true)}
+            onFormChange={handleFormChange}
           />
 
           {/* Multi Position Calculator Integration */}

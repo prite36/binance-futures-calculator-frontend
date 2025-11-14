@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,7 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Save, X } from 'lucide-react';
 import { TradingPairSelector } from '@/components/trading-pair-selector';
-import { CreateTradingPlanData, UpdateTradingPlanData, TradingPlan } from '@/lib/types';
+import { TradingPlan } from '@/lib/types';
 
 // Form validation schema - only basic plan info
 const planFormSchema = z.object({
@@ -45,7 +45,9 @@ interface PlanFormProps {
   onFormChange?: () => void;
 }
 
-export function PlanForm({ plan, onSave, onCancel, isLoading, onFormChange }: PlanFormProps) {
+function PlanFormComponent({ plan, onSave, onCancel, isLoading, onFormChange }: PlanFormProps) {
+  // console.log('📝 PlanForm render:', { planId: plan?.planId, isLoading });
+  
   const [isSaving, setIsSaving] = useState(false);
   const isEditing = !!plan;
 
@@ -59,18 +61,31 @@ export function PlanForm({ plan, onSave, onCancel, isLoading, onFormChange }: Pl
     },
   });
 
-  // Memoize trading pair change handler
+  // Memoize trading pair change handler with form reference
   const handleTradingPairChange = useCallback((value: string) => {
-    form.setValue('tradingPair', value);
+    // console.log('🔄 Trading pair changed in form:', value);
+    form.setValue('tradingPair', value, { shouldValidate: false, shouldDirty: false });
   }, [form]);
 
-  // Watch for form changes
+  // Watch for form changes - debounced to prevent excessive re-renders
   useEffect(() => {
-    const subscription = form.watch(() => {
-      onFormChange?.();
+    let timeoutId: NodeJS.Timeout;
+    
+    const subscription = form.watch((data) => {
+      // console.log('👀 Form data changed:', data);
+      
+      // Debounce the form change callback to prevent excessive re-renders
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        onFormChange?.();
+      }, 100);
     });
-    return () => subscription.unsubscribe();
-  }, [form, onFormChange]);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
+  }, [onFormChange]);
 
   // Handle form submission
   const onSubmit = async (data: PlanFormData) => {
@@ -138,12 +153,13 @@ export function PlanForm({ plan, onSave, onCancel, isLoading, onFormChange }: Pl
                 name="tradingPair"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Trading Pair</FormLabel>
                     <FormControl>
-                      <TradingPairSelector
-                        selectedSymbol={field.value}
-                        onSymbolChange={handleTradingPairChange}
-                      />
+                      <div key={`trading-pair-${field.value}`}>
+                        <TradingPairSelector
+                          selectedSymbol={field.value}
+                          onSymbolChange={handleTradingPairChange}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -181,6 +197,7 @@ export function PlanForm({ plan, onSave, onCancel, isLoading, onFormChange }: Pl
                 type="button"
                 variant="outline"
                 onClick={onCancel}
+                className='cursor-pointer'
                 disabled={isSaving || isLoading}
               >
                 <X className="h-4 w-4 mr-2" />
@@ -189,7 +206,7 @@ export function PlanForm({ plan, onSave, onCancel, isLoading, onFormChange }: Pl
               <Button
                 type="submit"
                 disabled={isSaving || isLoading}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 cursor-pointer"
               >
                 <Save className="h-4 w-4" />
                 {isSaving ? 'Saving...' : isEditing ? 'Update Plan' : 'Create Plan'}
@@ -201,3 +218,5 @@ export function PlanForm({ plan, onSave, onCancel, isLoading, onFormChange }: Pl
     </Card>
   );
 }
+
+export const PlanForm = memo(PlanFormComponent);
