@@ -279,28 +279,28 @@ export function PlanList({ plans, onPlanSelect, onPlanDelete, isLoading }: PlanL
                     {formatted.displayName}
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="cursor-pointer"
+                    className="cursor-pointer h-8 w-8 p-0 sm:h-9 sm:w-9"
                     onClick={(e) => {
                       e.stopPropagation();
                       onPlanSelect(plan.planId);
                     }}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="cursor-pointer"
+                        className="cursor-pointer h-8 w-8 p-0 sm:h-9 sm:w-9"
                         onClick={(e) => e.stopPropagation()}
                         disabled={deletingPlanId === plan.planId}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>

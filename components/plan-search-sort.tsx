@@ -104,10 +104,10 @@ export function PlanSearchSort({ plans, onFilteredPlansChange, className }: Plan
       <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search plans by name, description, ID, or trading pair..."
+          placeholder="Search plans..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 pr-10"
+          className="pl-10 pr-10 text-sm h-9 sm:h-10"
         />
         {searchTerm && (
           <Button
@@ -123,9 +123,9 @@ export function PlanSearchSort({ plans, onFilteredPlansChange, className }: Plan
       </div>
 
       {/* Sort Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
         <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-          <SelectTrigger className="w-48 bg-background border-border">
+          <SelectTrigger className="w-full sm:w-48 bg-background border-border text-sm h-9 sm:h-10">
             <div className="flex items-center gap-2">
               <SelectValue />
             </div>
@@ -162,11 +162,11 @@ export function PlanSearchSort({ plans, onFilteredPlansChange, className }: Plan
           variant="outline"
           size="sm"
           onClick={handleSortOrderToggle}
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center gap-1 sm:gap-2 cursor-pointer h-9 sm:h-10 px-2 sm:px-3 shrink-0"
           aria-label={`Sort ${sortOrder === 'asc' ? 'descending' : 'ascending'}`}
         >
           {getSortIcon()}
-          {sortOrder === 'asc' ? 'Asc' : 'Desc'}
+          <span className="text-xs sm:text-sm">{sortOrder === 'asc' ? 'Asc' : 'Desc'}</span>
         </Button>
       </div>
 

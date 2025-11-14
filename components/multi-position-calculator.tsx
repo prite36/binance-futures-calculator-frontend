@@ -146,22 +146,54 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
 
   // Calculate cumulative position - memoized for performance
   const calculateCumulativePosition = useMemo(
-    () => (positions: Position[], leverage: number) => {
+    () => (positions: Position[], leverage: number, unitPref: 'quantity' | 'orderSize' | 'initialMargin') => {
       let totalQuantity = 0;
       let totalNotionalValue = 0;
+      let totalMarginUsed = 0;
 
       positions.forEach((position) => {
         const orderPrice = parseFloat(position.orderPrice) || 0;
-        const quantity = parseFloat(position.quantity) || 0;
-        if (orderPrice > 0 && quantity > 0) {
-          totalQuantity += quantity;
-          totalNotionalValue += orderPrice * quantity;
+        const inputValue = parseFloat(position.inputValue) || 0;
+        
+        if (orderPrice <= 0 || inputValue <= 0) return;
+
+        let positionSize: number;
+        let orderValue: number;
+        let marginRequired: number;
+
+        if (unitPref === 'quantity') {
+          // Direct quantity input
+          positionSize = inputValue;
+          orderValue = positionSize * orderPrice;
+          marginRequired = orderValue / leverage;
+        } else if (unitPref === 'orderSize') {
+          // USDT order size input
+          orderValue = inputValue; // inputValue is in USDT
+          positionSize = orderValue / orderPrice;
+          marginRequired = orderValue / leverage;
+        } else {
+          // Initial margin input (initialMargin)
+          marginRequired = inputValue; // inputValue is the margin amount
+          orderValue = marginRequired * leverage;
+          positionSize = orderValue / orderPrice;
+        }
+
+        totalQuantity += positionSize;
+        totalNotionalValue += orderValue;
+        
+        // Calculate margin based on unit preference
+        if (unitPref === 'initialMargin') {
+          totalMarginUsed += marginRequired;
         }
       });
 
+      // For non-initialMargin modes, calculate margin from notional value
+      if (unitPref !== 'initialMargin') {
+        totalMarginUsed = totalNotionalValue / leverage;
+      }
+
       const averageEntryPrice =
         totalQuantity > 0 ? totalNotionalValue / totalQuantity : 0;
-      const totalMarginUsed = totalNotionalValue / leverage;
 
       return {
         totalQuantity,
@@ -203,7 +235,19 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
         cumulativeNotionalValue += orderPrice * quantity;
 
         const averageEntryPrice = cumulativeNotionalValue / cumulativeQuantity;
-        const totalMarginUsed = cumulativeNotionalValue / leverage;
+        
+        // Calculate margin based on unit preference
+        let totalMarginUsed: number;
+        if (unitPreference === 'initialMargin') {
+          // For initial margin mode, sum up the input values (which are margin amounts)
+          totalMarginUsed = calculatedPositions.reduce((sum, pos) => {
+            const inputValue = parseFloat(pos.inputValue) || 0;
+            return sum + inputValue;
+          }, 0) + (parseFloat(position.inputValue) || 0);
+        } else {
+          // For quantity and orderSize modes, calculate margin from notional value
+          totalMarginUsed = cumulativeNotionalValue / leverage;
+        }
 
         // Check if margin is sufficient
         if (totalMarginUsed > balance) {
@@ -270,7 +314,8 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
     (
       positions: Position[],
       leverage: number,
-      balance: number
+      balance: number,
+      unitPref: 'quantity' | 'orderSize' | 'initialMargin'
     ): PositionSummary => {
       const validPositions = positions.filter((p) => {
         const orderPrice = parseFloat(p.orderPrice) || 0;
@@ -289,7 +334,7 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
         };
       }
 
-      const cumulative = calculateCumulativePosition(validPositions, leverage);
+      const cumulative = calculateCumulativePosition(validPositions, leverage, unitPref);
       const finalPosition = positions[positions.length - 1];
 
       const riskWarnings: string[] = [];
@@ -415,7 +460,8 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
       const summary = calculatePositionSummary(
         calculatedPositions,
         leverage,
-        balance
+        balance,
+        unitPreference
       );
       setSummary(summary);
 
@@ -651,7 +697,7 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 cursor-pointer"
+                className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 cursor-pointer"
                 onClick={() => setLeverage(Math.max(1, leverage - 1))}
               >
                 −
@@ -663,15 +709,15 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
                   const value = parseInt(e.target.value) || 1;
                   setLeverage(Math.min(Math.max(1, value), maxLeverage));
                 }}
-                className="text-center font-bold text-lg h-8 w-20 no-spinner"
+                className="text-center font-bold text-sm sm:text-lg h-7 sm:h-8 w-16 sm:w-20 no-spinner"
                 min={1}
                 max={maxLeverage}
               />
-              <span className="text-sm text-muted-foreground shrink-0">x</span>
+              <span className="text-xs sm:text-sm text-muted-foreground shrink-0">x</span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 cursor-pointer"
+                className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 cursor-pointer"
                 onClick={() => setLeverage(Math.min(maxLeverage, leverage + 1))}
               >
                 +
@@ -685,7 +731,7 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
                   key={shortcut}
                   variant={leverage === shortcut ? "default" : "outline"}
                   size="sm"
-                  className="h-6 px-2 text-xs cursor-pointer"
+                  className="h-5 sm:h-6 px-1 sm:px-2 text-xs cursor-pointer"
                   onClick={() => setLeverage(shortcut)}
                 >
                   {shortcut}x

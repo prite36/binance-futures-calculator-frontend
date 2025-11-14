@@ -17,15 +17,15 @@ export function PlanFilter({ tradingPairs, selectedPair, onFilterChange }: PlanF
   };
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
       <div className="flex items-center gap-2">
         <Filter className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium">Filter by Trading Pair:</span>
+        <span className="text-xs sm:text-sm font-medium">Filter by Trading Pair:</span>
       </div>
       
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 w-full sm:w-auto">
         <Select value={selectedPair || 'all'} onValueChange={(value) => onFilterChange(value === 'all' ? undefined : value)}>
-          <SelectTrigger className="w-48 bg-background border-border">
+          <SelectTrigger className="w-full sm:w-48 bg-background border-border text-sm">
             <SelectValue placeholder="All trading pairs" />
           </SelectTrigger>
           <SelectContent className="bg-slate-900 border-border shadow-lg backdrop-blur-none [&>*]:bg-slate-900 [&_[data-highlighted]]:!bg-slate-700 [&_[data-highlighted]]:!text-white">
@@ -42,7 +42,7 @@ export function PlanFilter({ tradingPairs, selectedPair, onFilterChange }: PlanF
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 w-8 p-0 cursor-pointer"
+            className="h-8 w-8 p-0 cursor-pointer shrink-0"
             onClick={handleClearFilter}
             aria-label="Clear trading pair filter"
           >
@@ -52,7 +52,7 @@ export function PlanFilter({ tradingPairs, selectedPair, onFilterChange }: PlanF
       </div>
       
       {selectedPair && (
-        <div className="text-sm text-muted-foreground">
+        <div className="text-xs sm:text-sm text-muted-foreground">
           Showing plans for <span className="font-medium">{selectedPair}</span>
         </div>
       )}
