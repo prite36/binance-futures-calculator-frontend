@@ -111,11 +111,11 @@ function PlanFormComponent({ plan, onSave, onCancel, isLoading, onFormChange }: 
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg sm:text-xl">
           {isEditing ? 'Edit Trading Plan' : 'Create New Trading Plan'}
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-sm">
           {isEditing 
             ? 'Update your trading plan details and position configurations.'
             : 'Set up your trading plan with basic information and position details.'
@@ -126,7 +126,7 @@ function PlanFormComponent({ plan, onSave, onCancel, isLoading, onFormChange }: 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Basic Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               <FormField
                 control={form.control}
                 name="name"
@@ -192,21 +192,21 @@ function PlanFormComponent({ plan, onSave, onCancel, isLoading, onFormChange }: 
 
 
             {/* Form Actions */}
-            <div className="flex items-center justify-end gap-4 pt-6 border-t">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-6 border-t">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onCancel}
-                className='cursor-pointer'
+                className="flex items-center justify-center gap-2 cursor-pointer"
                 disabled={isSaving || isLoading}
               >
-                <X className="h-4 w-4 mr-2" />
+                <X className="h-4 w-4" />
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isSaving || isLoading}
-                className="flex items-center gap-2 cursor-pointer"
+                className="flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Save className="h-4 w-4" />
                 {isSaving ? 'Saving...' : isEditing ? 'Update Plan' : 'Create Plan'}

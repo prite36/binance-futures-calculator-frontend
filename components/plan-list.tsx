@@ -117,13 +117,13 @@ export function PlanList({ plans, onPlanSelect, onPlanDelete, isLoading }: PlanL
             You haven't created any trading plans yet. Create your first plan to get started.
           </CardDescription>
           <div className="flex items-center gap-2 justify-center">
-            <Button onClick={() => onPlanSelect('new')}>
+            <Button onClick={() => onPlanSelect('new')} className="cursor-pointer">
               Create Your First Plan
             </Button>
             <span className="text-muted-foreground">or</span>
             <TemplateSelectionDialog 
               trigger={
-                <Button variant="outline">
+                <Button variant="outline" className="cursor-pointer">
                   <FileTemplate className="h-4 w-4 mr-2" />
                   Use Template
                 </Button>
@@ -200,6 +200,7 @@ export function PlanList({ plans, onPlanSelect, onPlanDelete, isLoading }: PlanL
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
                         onPlanSelect(plan.planId);
@@ -213,6 +214,7 @@ export function PlanList({ plans, onPlanSelect, onPlanDelete, isLoading }: PlanL
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="cursor-pointer"
                           onClick={(e) => e.stopPropagation()}
                           disabled={deletingPlanId === plan.planId}
                           aria-label={`Delete plan ${formatted.displayName}`}
@@ -281,6 +283,7 @@ export function PlanList({ plans, onPlanSelect, onPlanDelete, isLoading }: PlanL
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
                       onPlanSelect(plan.planId);
@@ -293,6 +296,7 @@ export function PlanList({ plans, onPlanSelect, onPlanDelete, isLoading }: PlanL
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="cursor-pointer"
                         onClick={(e) => e.stopPropagation()}
                         disabled={deletingPlanId === plan.planId}
                       >

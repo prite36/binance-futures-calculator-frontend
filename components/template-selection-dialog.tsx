@@ -135,7 +135,7 @@ export function TemplateSelectionDialog({ trigger, onTemplateSelect }: TemplateS
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2 cursor-pointer">
             <FileTemplate className="h-4 w-4" />
             Use Template
           </Button>
@@ -274,6 +274,7 @@ export function TemplateSelectionDialog({ trigger, onTemplateSelect }: TemplateS
                     <Button
                       variant="ghost"
                       onClick={() => setSearchQuery('')}
+                      className="cursor-pointer"
                       className="mt-2"
                     >
                       Clear search

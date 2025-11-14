@@ -2,16 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+import { MainLayout } from '@/components/layout/main-layout';
 import { PlanForm } from '@/components/plan-form';
 import { MultiPositionCalculator } from '@/components/multi-position-calculator';
 import { db } from '@/lib/database';
@@ -205,89 +198,75 @@ export default function PlanEditorPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumb Navigation */}
-        <div className="mb-6">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/">Trading Plans</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>
-                  {isNewPlan ? 'New Plan' : plan?.name || planId}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
+  const pageTitle = isNewPlan ? 'Create New Plan' : 'Edit Plan';
+  const pageSubtitle = !isNewPlan && plan 
+    ? `${plan.planId} • ${plan.tradingPair}` 
+    : isNewPlan 
+    ? 'Set up your trading plan with position calculations'
+    : undefined;
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCancel}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Plans
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                {isNewPlan ? 'Create New Plan' : 'Edit Plan'}
-              </h1>
-              {!isNewPlan && plan && (
-                <p className="text-muted-foreground mt-1">
-                  {plan.planId} • {plan.tradingPair}
-                </p>
-              )}
-            </div>
-          </div>
-          
+  return (
+    <MainLayout
+      title={pageTitle}
+      subtitle={pageSubtitle}
+      showBackButton={true}
+      backHref="/"
+      backLabel="Back to Plans"
+      headerActions={
+        <div className="flex items-center gap-2">
           {hasUnsavedChanges && (
             <div className="flex items-center gap-2 text-sm text-amber-600">
               <div className="h-2 w-2 bg-amber-600 rounded-full"></div>
-              Unsaved changes
+              <span className="hidden sm:inline">Unsaved changes</span>
+              <span className="sm:hidden">Unsaved</span>
             </div>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCancel}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <span className="hidden sm:inline">Cancel</span>
+            <span className="sm:hidden">Cancel</span>
+          </Button>
         </div>
+      }
+    >
 
-        {/* Plan Form */}
-        <div className="space-y-8">
-          <PlanForm
-            plan={plan || undefined}
-            onSave={handleSaveBasicInfo}
-            onCancel={handleCancel}
-            isLoading={isSaving}
-            onFormChange={handleFormChange}
-          />
+      {/* Plan Form */}
+      <div className="space-y-8">
+        <PlanForm
+          plan={plan || undefined}
+          onSave={handleSaveBasicInfo}
+          onCancel={handleCancel}
+          isLoading={isSaving}
+          onFormChange={handleFormChange}
+        />
 
-          {/* Multi Position Calculator Integration */}
-          {(plan || isNewPlan) && (
-            <div className="border-t pt-8">
-              <h2 className="text-2xl font-bold mb-6">Position Calculator</h2>
-              <MultiPositionCalculator 
-                initialData={plan ? {
-                  tradingPair: plan.tradingPair,
-                  side: plan.side,
-                  marginMode: plan.marginMode,
-                  leverage: plan.leverage,
-                  balance: plan.balance,
-                  unitPreference: plan.unitPreference,
-                  positions: plan.positions,
-                } : undefined}
-                onCalculationComplete={handleCalculationComplete}
-                hideTradingPairSelector={true}
-              />
+        {/* Multi Position Calculator Integration */}
+        {(plan || isNewPlan) && (
+          <div className="border-t pt-8">
+            <div className="flex items-center gap-2 mb-6">
+              <Save className="h-5 w-5 text-primary" />
+              <h2 className="text-xl sm:text-2xl font-bold">Position Calculator</h2>
             </div>
-          )}
-        </div>
+            <MultiPositionCalculator 
+              initialData={plan ? {
+                tradingPair: plan.tradingPair,
+                side: plan.side,
+                marginMode: plan.marginMode,
+                leverage: plan.leverage,
+                balance: plan.balance,
+                unitPreference: plan.unitPreference,
+                positions: plan.positions,
+              } : undefined}
+              onCalculationComplete={handleCalculationComplete}
+              hideTradingPairSelector={true}
+            />
+          </div>
+        )}
       </div>
-    </div>
+    </MainLayout>
   );
 }

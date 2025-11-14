@@ -18,7 +18,7 @@ export function FuturesCalculator() {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="text-primary cursor-default hover:bg-primary/10">
+            <Button variant="ghost" size="icon" className="text-primary cursor-pointer hover:bg-primary/10">
               <Home className="h-5 w-5" />
             </Button>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
@@ -38,6 +38,7 @@ export function FuturesCalculator() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                className="cursor-pointer"
                 className={`relative py-4 text-sm font-medium transition-all duration-200 cursor-pointer ${
                   activeTab === tab.id 
                     ? "text-primary" 

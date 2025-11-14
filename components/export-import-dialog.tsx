@@ -199,7 +199,7 @@ export function ExportImportDialog({ plans, onImportComplete, trigger }: ExportI
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2 cursor-pointer">
             <Database className="h-4 w-4" />
             Export/Import
           </Button>
@@ -215,8 +215,8 @@ export function ExportImportDialog({ plans, onImportComplete, trigger }: ExportI
 
         <Tabs defaultValue="export" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="export">Export</TabsTrigger>
-            <TabsTrigger value="import">Import</TabsTrigger>
+            <TabsTrigger value="export" className="cursor-pointer">Export</TabsTrigger>
+            <TabsTrigger value="import" className="cursor-pointer">Import</TabsTrigger>
           </TabsList>
 
           {/* Export Tab */}
@@ -254,7 +254,7 @@ export function ExportImportDialog({ plans, onImportComplete, trigger }: ExportI
                   <Button
                     onClick={handleBackup}
                     disabled={isExporting || plans.length === 0}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 cursor-pointer"
                   >
                     <Download className="h-4 w-4" />
                     {isExporting ? 'Creating...' : 'Create Full Backup'}
@@ -306,7 +306,7 @@ export function ExportImportDialog({ plans, onImportComplete, trigger }: ExportI
                 <Button
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="w-full flex items-center gap-2"
+                  className="w-full flex items-center gap-2 cursor-pointer"
                 >
                   <Download className="h-4 w-4" />
                   {isExporting ? 'Exporting...' : `Export Selected (${selectedPlans.length || 'All'})`}

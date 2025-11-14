@@ -114,7 +114,7 @@ export function PlanSearchSort({ plans, onFilteredPlansChange, className }: Plan
             variant="ghost"
             size="sm"
             onClick={handleClearSearch}
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 cursor-pointer"
             aria-label="Clear search"
           >
             <X className="h-4 w-4" />
@@ -125,32 +125,31 @@ export function PlanSearchSort({ plans, onFilteredPlansChange, className }: Plan
       {/* Sort Controls */}
       <div className="flex items-center gap-2">
         <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-48 bg-background border-border">
             <div className="flex items-center gap-2">
-              {currentSortInfo.icon}
               <SelectValue />
             </div>
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="updatedAt">
+          <SelectContent className="bg-slate-900 border-border shadow-lg backdrop-blur-none [&>*]:bg-slate-900 [&_[data-highlighted]]:!bg-slate-700 [&_[data-highlighted]]:!text-white">
+            <SelectItem value="updatedAt" className="cursor-pointer bg-slate-900 focus:bg-slate-700 focus:text-white data-[highlighted]:bg-slate-700 data-[highlighted]:text-white hover:bg-slate-700 hover:text-white data-[state=checked]:bg-slate-700 data-[state=checked]:text-white">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Last Updated
               </div>
             </SelectItem>
-            <SelectItem value="createdAt">
+            <SelectItem value="createdAt" className="cursor-pointer bg-slate-900 focus:bg-slate-700 focus:text-white data-[highlighted]:bg-slate-700 data-[highlighted]:text-white hover:bg-slate-700 hover:text-white data-[state=checked]:bg-slate-700 data-[state=checked]:text-white">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Created Date
               </div>
             </SelectItem>
-            <SelectItem value="planId">
+            <SelectItem value="planId" className="cursor-pointer bg-slate-900 focus:bg-slate-700 focus:text-white data-[highlighted]:bg-slate-700 data-[highlighted]:text-white hover:bg-slate-700 hover:text-white data-[state=checked]:bg-slate-700 data-[state=checked]:text-white">
               <div className="flex items-center gap-2">
                 <Hash className="h-4 w-4" />
                 Plan ID
               </div>
             </SelectItem>
-            <SelectItem value="tradingPair">
+            <SelectItem value="tradingPair" className="cursor-pointer bg-slate-900 focus:bg-slate-700 focus:text-white data-[highlighted]:bg-slate-700 data-[highlighted]:text-white hover:bg-slate-700 hover:text-white data-[state=checked]:bg-slate-700 data-[state=checked]:text-white">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 Trading Pair
@@ -163,7 +162,7 @@ export function PlanSearchSort({ plans, onFilteredPlansChange, className }: Plan
           variant="outline"
           size="sm"
           onClick={handleSortOrderToggle}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 cursor-pointer"
           aria-label={`Sort ${sortOrder === 'asc' ? 'descending' : 'ascending'}`}
         >
           {getSortIcon()}
