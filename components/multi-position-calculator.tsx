@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -45,15 +45,54 @@ interface MaintenanceTier {
   maxLeverage: number;
 }
 
-export function MultiPositionCalculator() {
-  const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
-  const [leverage, setLeverage] = useState(10);
-  const [positionSide, setPositionSide] = useState<"long" | "short">("long");
-  const [balance, setBalance] = useState(5000);
-  const [positions, setPositions] = useState<Position[]>([
-    { id: "1", orderPrice: "", inputValue: "", inputType: "quantity", quantity: "" },
-  ]);
-  const [unitPreference, setUnitPreference] = useState<'quantity' | 'orderSize' | 'initialMargin'>('quantity');
+interface MultiPositionCalculatorProps {
+  initialData?: {
+    tradingPair?: string;
+    side?: 'long' | 'short';
+    marginMode?: 'cross' | 'isolated';
+    leverage?: number;
+    balance?: number;
+    unitPreference?: 'quantity' | 'orderSize' | 'initialMargin';
+    positions?: Array<{
+      size: number;
+      entryPrice: number;
+    }>;
+  };
+  onCalculationComplete?: (data: {
+    tradingPair: string;
+    side: 'long' | 'short';
+    marginMode: 'cross' | 'isolated';
+    leverage: number;
+    balance: number;
+    unitPreference: 'quantity' | 'orderSize' | 'initialMargin';
+    positions: Array<{
+      size: number;
+      entryPrice: number;
+    }>;
+  }) => void;
+  hideTradingPairSelector?: boolean;
+}
+
+function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, hideTradingPairSelector = false }: MultiPositionCalculatorProps = {}) {
+
+  const [selectedSymbol, setSelectedSymbol] = useState(initialData?.tradingPair || "BTCUSDT");
+  const [leverage, setLeverage] = useState(initialData?.leverage || 10);
+  const [positionSide, setPositionSide] = useState<"long" | "short">(initialData?.side || "long");
+  const [marginMode, setMarginMode] = useState<"cross" | "isolated">(initialData?.marginMode || "isolated");
+  const [balance, setBalance] = useState(initialData?.balance || 5000);
+  const [positions, setPositions] = useState<Position[]>(() => {
+    if (initialData?.positions && initialData.positions.length > 0) {
+      return initialData.positions.map((pos, index) => ({
+        id: (index + 1).toString(),
+        orderPrice: pos.entryPrice.toString(),
+        inputValue: pos.size.toString(),
+        inputType: initialData.unitPreference || 'quantity',
+        quantity: pos.size.toString(),
+      }));
+    }
+    return [{ id: "1", orderPrice: "", inputValue: "", inputType: "quantity", quantity: "" }];
+  });
+  const [unitPreference, setUnitPreference] = useState<'quantity' | 'orderSize' | 'initialMargin'>(initialData?.unitPreference || 'quantity');
   const [isCalculating, setIsCalculating] = useState(false);
   const [summary, setSummary] = useState<PositionSummary | null>(null);
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
@@ -108,22 +147,54 @@ export function MultiPositionCalculator() {
 
   // Calculate cumulative position - memoized for performance
   const calculateCumulativePosition = useMemo(
-    () => (positions: Position[], leverage: number) => {
+    () => (positions: Position[], leverage: number, unitPref: 'quantity' | 'orderSize' | 'initialMargin') => {
       let totalQuantity = 0;
       let totalNotionalValue = 0;
+      let totalMarginUsed = 0;
 
       positions.forEach((position) => {
         const orderPrice = parseFloat(position.orderPrice) || 0;
-        const quantity = parseFloat(position.quantity) || 0;
-        if (orderPrice > 0 && quantity > 0) {
-          totalQuantity += quantity;
-          totalNotionalValue += orderPrice * quantity;
+        const inputValue = parseFloat(position.inputValue) || 0;
+        
+        if (orderPrice <= 0 || inputValue <= 0) return;
+
+        let positionSize: number;
+        let orderValue: number;
+        let marginRequired: number;
+
+        if (unitPref === 'quantity') {
+          // Direct quantity input
+          positionSize = inputValue;
+          orderValue = positionSize * orderPrice;
+          marginRequired = orderValue / leverage;
+        } else if (unitPref === 'orderSize') {
+          // USDT order size input
+          orderValue = inputValue; // inputValue is in USDT
+          positionSize = orderValue / orderPrice;
+          marginRequired = orderValue / leverage;
+        } else {
+          // Initial margin input (initialMargin)
+          marginRequired = inputValue; // inputValue is the margin amount
+          orderValue = marginRequired * leverage;
+          positionSize = orderValue / orderPrice;
+        }
+
+        totalQuantity += positionSize;
+        totalNotionalValue += orderValue;
+        
+        // Calculate margin based on unit preference
+        if (unitPref === 'initialMargin') {
+          totalMarginUsed += marginRequired;
         }
       });
 
+      // For non-initialMargin modes, calculate margin from notional value
+      if (unitPref !== 'initialMargin') {
+        totalMarginUsed = totalNotionalValue / leverage;
+      }
+
       const averageEntryPrice =
         totalQuantity > 0 ? totalNotionalValue / totalQuantity : 0;
-      const totalMarginUsed = totalNotionalValue / leverage;
 
       return {
         totalQuantity,
@@ -142,6 +213,7 @@ export function MultiPositionCalculator() {
       leverage: number,
       balance: number,
       positionSide: "long" | "short",
+      marginMode: "cross" | "isolated",
       tiers: MaintenanceTier[]
     ): Position[] => {
       const calculatedPositions: Position[] = [];
@@ -165,7 +237,19 @@ export function MultiPositionCalculator() {
         cumulativeNotionalValue += orderPrice * quantity;
 
         const averageEntryPrice = cumulativeNotionalValue / cumulativeQuantity;
-        const totalMarginUsed = cumulativeNotionalValue / leverage;
+        
+        // Calculate margin based on unit preference
+        let totalMarginUsed: number;
+        if (unitPreference === 'initialMargin') {
+          // For initial margin mode, sum up the input values (which are margin amounts)
+          totalMarginUsed = calculatedPositions.reduce((sum, pos) => {
+            const inputValue = parseFloat(pos.inputValue) || 0;
+            return sum + inputValue;
+          }, 0) + (parseFloat(position.inputValue) || 0);
+        } else {
+          // For quantity and orderSize modes, calculate margin from notional value
+          totalMarginUsed = cumulativeNotionalValue / leverage;
+        }
 
         // Check if margin is sufficient
         if (totalMarginUsed > balance) {
@@ -184,7 +268,7 @@ export function MultiPositionCalculator() {
             entryPrice: averageEntryPrice,
             quantity: cumulativeQuantity,
             balance,
-            marginMode: "cross",
+            marginMode: marginMode,
             tiers,
             symbol: selectedSymbol,
           });
@@ -224,7 +308,7 @@ export function MultiPositionCalculator() {
 
       return calculatedPositions;
     },
-    [selectedSymbol]
+    [selectedSymbol, unitPreference]
   );
 
   // Calculate position summary
@@ -232,7 +316,8 @@ export function MultiPositionCalculator() {
     (
       positions: Position[],
       leverage: number,
-      balance: number
+      balance: number,
+      unitPref: 'quantity' | 'orderSize' | 'initialMargin'
     ): PositionSummary => {
       const validPositions = positions.filter((p) => {
         const orderPrice = parseFloat(p.orderPrice) || 0;
@@ -251,7 +336,7 @@ export function MultiPositionCalculator() {
         };
       }
 
-      const cumulative = calculateCumulativePosition(validPositions, leverage);
+      const cumulative = calculateCumulativePosition(validPositions, leverage, unitPref);
       const finalPosition = positions[positions.length - 1];
 
       const riskWarnings: string[] = [];
@@ -369,6 +454,7 @@ export function MultiPositionCalculator() {
         leverage,
         balance,
         positionSide,
+        marginMode,
         tiers
       );
 
@@ -377,7 +463,8 @@ export function MultiPositionCalculator() {
       const summary = calculatePositionSummary(
         calculatedPositions,
         leverage,
-        balance
+        balance,
+        unitPreference
       );
       setSummary(summary);
 
@@ -391,6 +478,32 @@ export function MultiPositionCalculator() {
       // Show success message
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
+
+      // Notify parent component of successful calculation
+      if (onCalculationComplete) {
+        const validPositions = calculatedPositions
+          .filter(p => {
+            const orderPrice = parseFloat(p.orderPrice) || 0;
+            const quantity = parseFloat(p.quantity) || 0;
+            return orderPrice > 0 && quantity > 0 && !p.error;
+          })
+          .map(p => ({
+            size: parseFloat(p.quantity) || 0,
+            entryPrice: parseFloat(p.orderPrice) || 0,
+          }));
+
+        if (validPositions.length > 0) {
+          onCalculationComplete({
+            tradingPair: selectedSymbol,
+            side: positionSide,
+            marginMode: marginMode,
+            leverage,
+            balance,
+            unitPreference,
+            positions: validPositions,
+          });
+        }
+      }
     } catch (error) {
       console.error("Calculation error:", error);
       // Show error in console, but don't break the UI
@@ -403,10 +516,14 @@ export function MultiPositionCalculator() {
     leverage,
     balance,
     positionSide,
+    marginMode,
     calculatePositionLiquidationPrices,
     calculatePositionSummary,
     analyzePositionRisk,
     currentPrice,
+    onCalculationComplete,
+    selectedSymbol,
+    unitPreference,
   ]);
 
   // Validation - memoized for performance
@@ -426,6 +543,8 @@ export function MultiPositionCalculator() {
     setSummary(null);
     setRiskAnalysis(null);
   }, [selectedSymbol]);
+
+
 
   // Handle keyboard events
   useEffect(() => {
@@ -468,10 +587,12 @@ export function MultiPositionCalculator() {
         <h2 className="text-xl font-semibold text-primary">Configuration</h2>
 
         {/* Trading Pair Selector */}
-        <TradingPairSelector
-          selectedSymbol={selectedSymbol}
-          onSymbolChange={setSelectedSymbol}
-        />
+        {!hideTradingPairSelector && (
+          <TradingPairSelector
+            selectedSymbol={selectedSymbol}
+            onSymbolChange={setSelectedSymbol}
+          />
+        )}
 
         {/* API Status */}
         {isLoadingBrackets && (
@@ -541,7 +662,7 @@ export function MultiPositionCalculator() {
           </div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
           {/* Position Side */}
           <div className="space-y-2">
             <Label className="text-muted-foreground">Position Side</Label>
@@ -571,6 +692,35 @@ export function MultiPositionCalculator() {
             </div>
           </div>
 
+          {/* Margin Mode */}
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">Margin Mode</Label>
+            <div className="grid grid-cols-2 gap-0 rounded-lg overflow-hidden border border-border">
+              <button
+                type="button"
+                onClick={() => setMarginMode("isolated")}
+                className={`py-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  marginMode === "isolated"
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                    : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105"
+                }`}
+              >
+                Isolated
+              </button>
+              <button
+                type="button"
+                onClick={() => setMarginMode("cross")}
+                className={`py-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  marginMode === "cross"
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                    : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105"
+                }`}
+              >
+                Cross
+              </button>
+            </div>
+          </div>
+
           {/* Leverage */}
           <div className="space-y-3">
             <Label className="text-muted-foreground">Leverage</Label>
@@ -580,7 +730,7 @@ export function MultiPositionCalculator() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 cursor-pointer"
+                className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 cursor-pointer"
                 onClick={() => setLeverage(Math.max(1, leverage - 1))}
               >
                 −
@@ -592,15 +742,15 @@ export function MultiPositionCalculator() {
                   const value = parseInt(e.target.value) || 1;
                   setLeverage(Math.min(Math.max(1, value), maxLeverage));
                 }}
-                className="text-center font-bold text-lg h-8 w-20 no-spinner"
+                className="text-center font-bold text-sm sm:text-lg h-7 sm:h-8 w-16 sm:w-20 no-spinner"
                 min={1}
                 max={maxLeverage}
               />
-              <span className="text-sm text-muted-foreground shrink-0">x</span>
+              <span className="text-xs sm:text-sm text-muted-foreground shrink-0">x</span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 cursor-pointer"
+                className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 cursor-pointer"
                 onClick={() => setLeverage(Math.min(maxLeverage, leverage + 1))}
               >
                 +
@@ -614,7 +764,7 @@ export function MultiPositionCalculator() {
                   key={shortcut}
                   variant={leverage === shortcut ? "default" : "outline"}
                   size="sm"
-                  className="h-6 px-2 text-xs cursor-pointer"
+                  className="h-5 sm:h-6 px-1 sm:px-2 text-xs cursor-pointer"
                   onClick={() => setLeverage(shortcut)}
                 >
                   {shortcut}x
@@ -780,6 +930,30 @@ export function MultiPositionCalculator() {
           </div>
         </div>
 
+        {/* Margin Mode Description */}
+        <div className="mb-4 p-3 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+          <div className="text-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-blue-700 dark:text-blue-300">
+                {marginMode === 'isolated' ? 'Isolated Margin' : 'Cross Margin'}
+              </span>
+              <span className={`px-2 py-0.5 text-xs rounded-full ${
+                marginMode === 'isolated' 
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                  : 'bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300'
+              }`}>
+                {marginMode === 'isolated' ? 'Default' : 'Advanced'}
+              </span>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              {marginMode === 'isolated' 
+                ? 'Each position uses only its allocated margin. Losses are limited to the margin assigned to that position.'
+                : 'All positions share the same margin pool. Profits from one position can offset losses from another.'
+              }
+            </p>
+          </div>
+        </div>
+
         <PositionTable
           positions={positions}
           onPositionChange={updatePosition}
@@ -809,3 +983,5 @@ export function MultiPositionCalculator() {
     </div>
   );
 }
+
+export const MultiPositionCalculator = memo(MultiPositionCalculatorComponent);

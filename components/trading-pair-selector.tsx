@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react"
+import { useState, useEffect, useRef, useCallback, memo } from "react"
 import { ChevronDown, Search } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -21,74 +21,113 @@ interface TradingPairSelectorProps {
   className?: string
 }
 
-export function TradingPairSelector({ selectedSymbol, onSymbolChange, className }: TradingPairSelectorProps) {
+function TradingPairSelectorComponent({ selectedSymbol, onSymbolChange, className }: TradingPairSelectorProps) {
   const [tradingPairs, setTradingPairs] = useState<TradingPair[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [isOpen, setIsOpen] = useState(false)
+  const [isProtected, setIsProtected] = useState(false)
+  
+  // Use refs to prevent re-render issues
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const isOpenRef = useRef(false)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Update ref when isOpen changes
+  useEffect(() => {
+    isOpenRef.current = isOpen
+  }, [isOpen])
 
   // Filter trading pairs based on search query
-  const filteredPairs = useMemo(() => {
-    if (!searchQuery) return tradingPairs
+  const filteredPairs = searchQuery 
+    ? tradingPairs.filter(pair => 
+        pair.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        pair.baseAsset.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : tradingPairs
+
+  // Stable callback for symbol change
+  const handleSymbolChange = useCallback((symbol: string) => {
+    onSymbolChange(symbol)
+    setIsOpen(false)
+    setSearchQuery("")
+  }, [onSymbolChange])
+
+  // Stable callback for toggle with protection
+  const handleToggle = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     
-    const query = searchQuery.toLowerCase()
-    return tradingPairs.filter(pair => 
-      pair.symbol.toLowerCase().includes(query) ||
-      pair.baseAsset.toLowerCase().includes(query)
-    )
-  }, [tradingPairs, searchQuery])
-
-  const fetchTradingPairs = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      
-      const response = await fetch("/api/binance/symbols")
-      if (!response.ok) {
-        throw new Error("Failed to fetch trading pairs")
-      }
-      
-      const data = await response.json()
-      setTradingPairs(data.symbols)
-      
-      // Set default symbol if none selected
-      if (!selectedSymbol && data.symbols.length > 0) {
-        const btcusdt = data.symbols.find((pair: TradingPair) => pair.symbol === "BTCUSDT")
-        onSymbolChange(btcusdt?.symbol || data.symbols[0].symbol)
-      }
-    } catch (error) {
-      console.error("Error fetching trading pairs:", error)
-      setError("Failed to load trading pairs")
-    } finally {
-      setIsLoading(false)
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
     }
-  }, [selectedSymbol, onSymbolChange])
+    
+    if (!isOpen) {
+      setIsOpen(true)
+      setIsProtected(true)
+      
+      // Remove protection after delay
+      setTimeout(() => {
+        setIsProtected(false)
+      }, 2000) // 2 seconds protection
+    } else {
+      setIsOpen(false)
+    }
+  }, [isOpen])
 
+  // Click outside handler with protection
   useEffect(() => {
-    fetchTradingPairs()
-  }, [fetchTradingPairs])
+    if (!isOpen || isProtected) return
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    // Add delay to prevent immediate closing
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside)
+    }, 500)
+
     return () => {
+      clearTimeout(timeoutId)
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [])
+  }, [isOpen, isProtected])
 
-  const handleSelectPair = (symbol: string) => {
-    onSymbolChange(symbol)
-    setIsOpen(false)
-    setSearchQuery("")
-  }
+  useEffect(() => {
+    const fetchTradingPairs = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        
+        const response = await fetch("/api/binance/symbols")
+        if (!response.ok) {
+          throw new Error("Failed to fetch trading pairs")
+        }
+        
+        const data = await response.json()
+        setTradingPairs(data.symbols)
+        
+        // Set default symbol if none selected
+        if (!selectedSymbol && data.symbols.length > 0) {
+          const btcusdt = data.symbols.find((pair: TradingPair) => pair.symbol === "BTCUSDT")
+          onSymbolChange(btcusdt?.symbol || data.symbols[0].symbol)
+        }
+      } catch (error) {
+        console.error("Error fetching trading pairs:", error)
+        setError("Failed to load trading pairs")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchTradingPairs()
+  }, []) // Only fetch once
+
+
 
   if (error) {
     return (
@@ -111,8 +150,9 @@ export function TradingPairSelector({ selectedSymbol, onSymbolChange, className 
         {/* Trigger Button */}
         <Button
           variant="outline"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={handleToggle}
           disabled={isLoading}
+          type="button"
           className="w-full justify-between bg-card border-border hover:bg-muted/50 cursor-pointer disabled:cursor-not-allowed"
         >
           <span className="font-medium">
@@ -123,9 +163,9 @@ export function TradingPairSelector({ selectedSymbol, onSymbolChange, className 
 
         {/* Dropdown Content */}
         {isOpen && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md euler-border shadow-xl backdrop-blur-md">
+          <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md bg-popover border border-border shadow-xl backdrop-blur-md">
             {/* Search Input */}
-            <div className="p-3 border-b">
+            <div className="p-3 border-b border-border">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -148,7 +188,7 @@ export function TradingPairSelector({ selectedSymbol, onSymbolChange, className 
                 filteredPairs.map((pair) => (
                   <button
                     key={pair.symbol}
-                    onClick={() => handleSelectPair(pair.symbol)}
+                    onClick={() => handleSymbolChange(pair.symbol)}
                     className={`w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between cursor-pointer ${
                       selectedSymbol === pair.symbol ? 'bg-muted' : ''
                     }`}
@@ -178,3 +218,5 @@ export function TradingPairSelector({ selectedSymbol, onSymbolChange, className 
     </div>
   )
 }
+
+export const TradingPairSelector = memo(TradingPairSelectorComponent);

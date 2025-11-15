@@ -1,0 +1,25 @@
+name: Deploy to Self-Hosted Runner
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: self-hosted
+    environment: production
+    
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Build and deploy Docker container
+        run: |
+          docker compose up -d --build
+
+      - name: Clean up old images
+        run: |
+          docker image prune -f
