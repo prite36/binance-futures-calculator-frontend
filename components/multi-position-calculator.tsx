@@ -11,6 +11,8 @@ import { ResultsSummary } from "@/components/results-summary";
 import { calculateLiquidationPrice } from "@/lib/liquidation-formula";
 import { useTradingData } from "@/hooks/use-trading-data";
 import { useDisableNumberInputScroll } from "@/hooks/use-disable-number-input-scroll";
+import { DecimalMath, safeParseDecimal } from "@/lib/decimal-utils";
+import { Decimal } from "decimal.js";
 
 interface Position {
   id: string;
@@ -92,19 +94,33 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
     }
     return [{ id: "1", orderPrice: "", inputValue: "", inputType: "quantity", quantity: "" }];
   });
-  const [unitPreference, setUnitPreference] = useState<'quantity' | 'orderSize' | 'initialMargin'>(initialData?.unitPreference || 'quantity');
+  const [unitPreference, setUnitPreference] = useState<'quantity' | 'orderSize' | 'initialMargin'>(() => {
+    // Try to get from localStorage first, then fallback to initialData or default
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('unitPreference');
+      if (saved && ['quantity', 'orderSize', 'initialMargin'].includes(saved)) {
+        return saved as 'quantity' | 'orderSize' | 'initialMargin';
+      }
+    }
+    return initialData?.unitPreference || 'quantity';
+  });
   const [isCalculating, setIsCalculating] = useState(false);
   const [summary, setSummary] = useState<PositionSummary | null>(null);
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [isEnterPressed, setIsEnterPressed] = useState(false);
+  const [hasAutoCalculated, setHasAutoCalculated] = useState(false);
 
   // Use shared trading data hook
   const {
     leverageBrackets: binanceBrackets,
     currentPrice,
     maxLeverage,
+    symbolInfo,
+    pricePrecision,
+    quantityPrecision,
     isLoadingBrackets,
+    isLoadingSymbolInfo,
     apiError,
   } = useTradingData(selectedSymbol);
 
@@ -148,59 +164,60 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
   // Calculate cumulative position - memoized for performance
   const calculateCumulativePosition = useMemo(
     () => (positions: Position[], leverage: number, unitPref: 'quantity' | 'orderSize' | 'initialMargin') => {
-      let totalQuantity = 0;
-      let totalNotionalValue = 0;
-      let totalMarginUsed = 0;
+      let totalQuantity = DecimalMath.add(0, 0);
+      let totalNotionalValue = DecimalMath.add(0, 0);
+      let totalMarginUsed = DecimalMath.add(0, 0);
 
       positions.forEach((position) => {
-        const orderPrice = parseFloat(position.orderPrice) || 0;
-        const inputValue = parseFloat(position.inputValue) || 0;
+        const orderPriceDecimal = safeParseDecimal(position.orderPrice);
+        const inputValueDecimal = safeParseDecimal(position.inputValue);
         
-        if (orderPrice <= 0 || inputValue <= 0) return;
+        if (!orderPriceDecimal || !inputValueDecimal || orderPriceDecimal.lessThanOrEqualTo(0) || inputValueDecimal.lessThanOrEqualTo(0)) return;
 
-        let positionSize: number;
-        let orderValue: number;
-        let marginRequired: number;
+        let positionSize = new Decimal(0);
+        let orderValue = new Decimal(0);
+        let marginRequired = new Decimal(0);
 
         if (unitPref === 'quantity') {
           // Direct quantity input
-          positionSize = inputValue;
-          orderValue = positionSize * orderPrice;
-          marginRequired = orderValue / leverage;
+          positionSize = inputValueDecimal;
+          orderValue = positionSize.mul(orderPriceDecimal);
+          marginRequired = orderValue.div(leverage);
         } else if (unitPref === 'orderSize') {
           // USDT order size input
-          orderValue = inputValue; // inputValue is in USDT
-          positionSize = orderValue / orderPrice;
-          marginRequired = orderValue / leverage;
+          orderValue = inputValueDecimal; // inputValue is in USDT
+          positionSize = orderValue.div(orderPriceDecimal);
+          marginRequired = orderValue.div(leverage);
         } else {
           // Initial margin input (initialMargin)
-          marginRequired = inputValue; // inputValue is the margin amount
-          orderValue = marginRequired * leverage;
-          positionSize = orderValue / orderPrice;
+          marginRequired = inputValueDecimal; // inputValue is the margin amount
+          orderValue = marginRequired.mul(leverage);
+          positionSize = orderValue.div(orderPriceDecimal);
         }
 
-        totalQuantity += positionSize;
-        totalNotionalValue += orderValue;
+        totalQuantity = totalQuantity.add(positionSize);
+        totalNotionalValue = totalNotionalValue.add(orderValue);
         
         // Calculate margin based on unit preference
         if (unitPref === 'initialMargin') {
-          totalMarginUsed += marginRequired;
+          totalMarginUsed = totalMarginUsed.add(marginRequired);
         }
       });
 
       // For non-initialMargin modes, calculate margin from notional value
       if (unitPref !== 'initialMargin') {
-        totalMarginUsed = totalNotionalValue / leverage;
+        totalMarginUsed = totalNotionalValue.div(leverage);
       }
 
-      const averageEntryPrice =
-        totalQuantity > 0 ? totalNotionalValue / totalQuantity : 0;
+      const averageEntryPrice = totalQuantity.greaterThan(0) 
+        ? totalNotionalValue.div(totalQuantity) 
+        : new Decimal(0);
 
       return {
-        totalQuantity,
-        totalNotionalValue,
-        averageEntryPrice,
-        totalMarginUsed,
+        totalQuantity: totalQuantity.toNumber(),
+        totalNotionalValue: totalNotionalValue.toNumber(),
+        averageEntryPrice: averageEntryPrice.toNumber(),
+        totalMarginUsed: totalMarginUsed.toNumber(),
       };
     },
     []
@@ -221,16 +238,19 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
       let cumulativeNotionalValue = 0;
 
       positions.forEach((position, index) => {
-        const orderPrice = parseFloat(position.orderPrice) || 0;
-        const quantity = parseFloat(position.quantity) || 0;
+        const orderPriceDecimal = safeParseDecimal(position.orderPrice);
+        const quantityDecimal = safeParseDecimal(position.quantity);
         
-        if (orderPrice <= 0 || quantity <= 0) {
+        if (!orderPriceDecimal || !quantityDecimal || orderPriceDecimal.lessThanOrEqualTo(0) || quantityDecimal.lessThanOrEqualTo(0)) {
           calculatedPositions.push({
             ...position,
             error: "กรุณาป้อนราคาและจำนวนที่ถูกต้อง",
           });
           return;
         }
+
+        const orderPrice = DecimalMath.toNumber(orderPriceDecimal);
+        const quantity = DecimalMath.toNumber(quantityDecimal);
 
         // Calculate cumulative position up to this row
         cumulativeQuantity += quantity;
@@ -242,13 +262,21 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
         let totalMarginUsed: number;
         if (unitPreference === 'initialMargin') {
           // For initial margin mode, sum up the input values (which are margin amounts)
-          totalMarginUsed = calculatedPositions.reduce((sum, pos) => {
-            const inputValue = parseFloat(pos.inputValue) || 0;
-            return sum + inputValue;
-          }, 0) + (parseFloat(position.inputValue) || 0);
+          let marginSum = new Decimal(0);
+          calculatedPositions.forEach(pos => {
+            const inputValueDecimal = safeParseDecimal(pos.inputValue);
+            if (inputValueDecimal) {
+              marginSum = marginSum.add(inputValueDecimal);
+            }
+          });
+          const currentInputDecimal = safeParseDecimal(position.inputValue);
+          if (currentInputDecimal) {
+            marginSum = marginSum.add(currentInputDecimal);
+          }
+          totalMarginUsed = marginSum.toNumber();
         } else {
           // For quantity and orderSize modes, calculate margin from notional value
-          totalMarginUsed = cumulativeNotionalValue / leverage;
+          totalMarginUsed = new Decimal(cumulativeNotionalValue).div(leverage).toNumber();
         }
 
         // Check if margin is sufficient
@@ -542,9 +570,60 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
   useEffect(() => {
     setSummary(null);
     setRiskAnalysis(null);
+    setHasAutoCalculated(false); // Reset auto-calculation flag for new symbol
   }, [selectedSymbol]);
 
+  // Persist unitPreference to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('unitPreference', unitPreference);
+    }
+  }, [unitPreference]);
 
+  // Update all positions' inputType when unitPreference changes
+  useEffect(() => {
+    setPositions(prev => prev.map(position => {
+      const orderPriceDecimal = safeParseDecimal(position.orderPrice);
+      const currentQuantityDecimal = safeParseDecimal(position.quantity);
+      
+      // If we have valid data, try to convert the input value to the new unit preference
+      let newInputValue = position.inputValue;
+      
+      if (orderPriceDecimal && currentQuantityDecimal && orderPriceDecimal.greaterThan(0) && currentQuantityDecimal.greaterThan(0)) {
+        try {
+          const convertedValue = DecimalMath.calculateInputValue(
+            currentQuantityDecimal.toString(),
+            orderPriceDecimal.toString(),
+            leverage,
+            unitPreference
+          );
+          newInputValue = DecimalMath.formatForInput(convertedValue);
+        } catch (error) {
+          console.warn('Error converting input value:', error);
+          // Keep the original value if conversion fails
+        }
+      }
+      
+      return {
+        ...position,
+        inputType: unitPreference,
+        inputValue: newInputValue
+      };
+    }));
+  }, [unitPreference, leverage]);
+
+  // Auto-calculate on first load when canCalculate becomes true
+  useEffect(() => {
+    if (canCalculate && !hasAutoCalculated && !isCalculating && !summary) {
+      // Small delay to ensure all data is loaded
+      const timer = setTimeout(() => {
+        setHasAutoCalculated(true);
+        handleCalculate();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [canCalculate, hasAutoCalculated, isCalculating, summary, handleCalculate]);
 
   // Handle keyboard events
   useEffect(() => {
@@ -964,6 +1043,8 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
           unitPreference={unitPreference}
           leverage={leverage}
           currentPrice={currentPrice}
+          pricePrecision={pricePrecision}
+          quantityPrecision={quantityPrecision}
         />
       </div>
 
@@ -977,6 +1058,8 @@ function MultiPositionCalculatorComponent({ initialData, onCalculationComplete, 
             baseAsset={baseAsset}
             positionSide={positionSide}
             currentPrice={currentPrice}
+            pricePrecision={pricePrecision}
+            quantityPrecision={quantityPrecision}
           />
         </div>
       )}
