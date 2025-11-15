@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiCache, CACHE_TTL } from "@/lib/api-cache";
+import { spriteFlowApiEndpoint } from "@/common/env";
 
 export const dynamic = "force-dynamic";
 
@@ -37,8 +38,7 @@ export async function GET(request: Request) {
     }
 
     // Fetch from your API
-    const apiEndpoint = process.env.SPRITE_FLOW_API_ENDPOINT || 'https://trading-bot-api.spritelemon36.space';
-    const apiUrl = `${apiEndpoint}/ctx/exchange/leverage-brackets?symbol=${symbol}`;
+    const apiUrl = `${spriteFlowApiEndpoint}/ctx/exchange/leverage-brackets?symbol=${symbol}`;
     
     const response = await fetch(apiUrl, {
       headers: {

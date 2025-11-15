@@ -1,0 +1,21 @@
+# Docker ignore for Next.js project
+
+# Git files
+.git
+.github
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Project documentation
+README.md
+
+# Next.js build output
+.next
+
+# Node modules
+node_modules
+
+# Local environment variables
+.env.local
