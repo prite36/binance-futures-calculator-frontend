@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: binance-futures-calculator-web
     ports:
-      - "3004:3000"
+      - "3005:3000"
     restart: unless-stopped
     environment:
       - NODE_ENV=production
