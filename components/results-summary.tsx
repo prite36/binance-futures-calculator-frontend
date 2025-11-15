@@ -1,5 +1,7 @@
 "use client";
 
+import { DecimalMath } from "@/lib/decimal-utils";
+
 interface PositionSummary {
   totalPositionSize: number;
   averageEntryPrice: number;
@@ -21,6 +23,8 @@ interface ResultsSummaryProps {
   baseAsset: string;
   positionSide: 'long' | 'short';
   currentPrice?: number | null;
+  pricePrecision?: number;
+  quantityPrecision?: number;
 }
 
 export function ResultsSummary({ 
@@ -28,7 +32,9 @@ export function ResultsSummary({
   riskAnalysis, 
   baseAsset, 
   positionSide,
-  currentPrice 
+  currentPrice,
+  pricePrecision = 2,
+  quantityPrecision = 3,
 }: ResultsSummaryProps) {
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -63,20 +69,14 @@ export function ResultsSummary({
         <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
           <div className="text-sm text-muted-foreground">Total Position Size</div>
           <div className="text-xl font-bold text-primary">
-            {summary.totalPositionSize.toLocaleString(undefined, {
-              minimumFractionDigits: 3,
-              maximumFractionDigits: 3,
-            })} {baseAsset}
+            {DecimalMath.formatQuantity(summary.totalPositionSize, quantityPrecision)} {baseAsset}
           </div>
         </div>
         
         <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
           <div className="text-sm text-muted-foreground">Average Entry Price</div>
           <div className="text-xl font-bold text-primary">
-            {summary.averageEntryPrice.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })} USDT
+            {DecimalMath.formatPrice(summary.averageEntryPrice, pricePrecision)} USDT
           </div>
         </div>
         
@@ -88,10 +88,7 @@ export function ResultsSummary({
               : 'text-muted-foreground'
           }`}>
             {summary.finalLiquidationPrice > 0 
-              ? `${summary.finalLiquidationPrice.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} USDT`
+              ? `${DecimalMath.formatPrice(summary.finalLiquidationPrice, pricePrecision)} USDT`
               : 'N/A'
             }
           </div>
@@ -103,20 +100,14 @@ export function ResultsSummary({
         <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
           <div className="text-sm text-muted-foreground">Total Margin Used</div>
           <div className="text-lg font-bold text-primary">
-            {summary.totalMarginUsed.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })} USDT
+            {DecimalMath.format(summary.totalMarginUsed, 2)} USDT
           </div>
         </div>
         
         <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
           <div className="text-sm text-muted-foreground">Remaining Balance</div>
           <div className="text-lg font-bold text-primary">
-            {summary.remainingBalance.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })} USDT
+            {DecimalMath.format(summary.remainingBalance, 2)} USDT
           </div>
         </div>
 
@@ -124,10 +115,7 @@ export function ResultsSummary({
           <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
             <div className="text-sm text-muted-foreground">Current Price</div>
             <div className="text-lg font-bold text-primary">
-              {currentPrice.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })} USDT
+              {DecimalMath.formatPrice(currentPrice, pricePrecision)} USDT
             </div>
           </div>
         )}
@@ -136,7 +124,7 @@ export function ResultsSummary({
           <div className="rounded-lg euler-border p-4 backdrop-blur-sm">
             <div className="text-sm text-muted-foreground">Distance to Liquidation</div>
             <div className="text-lg font-bold text-primary">
-              {(Math.abs(currentPrice - summary.finalLiquidationPrice) / currentPrice * 100).toFixed(2)}%
+              {DecimalMath.format((Math.abs(currentPrice - summary.finalLiquidationPrice) / currentPrice * 100), 2)}%
             </div>
           </div>
         )}
@@ -181,13 +169,13 @@ export function ResultsSummary({
           <div className="flex justify-between">
             <span className="text-muted-foreground">Position Value:</span>
             <span className="font-medium">
-              {(summary.averageEntryPrice * summary.totalPositionSize).toLocaleString()} USDT
+              {DecimalMath.format(summary.averageEntryPrice * summary.totalPositionSize, 2)} USDT
             </span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Margin Utilization:</span>
             <span className="font-medium">
-              {((summary.totalMarginUsed / (summary.totalMarginUsed + summary.remainingBalance)) * 100).toFixed(1)}%
+              {DecimalMath.format((summary.totalMarginUsed / (summary.totalMarginUsed + summary.remainingBalance)) * 100, 1)}%
             </span>
           </div>
           <div className="flex justify-between">

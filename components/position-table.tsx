@@ -3,6 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Trash2 } from "lucide-react";
+import { DecimalMath, safeParseDecimal } from "@/lib/decimal-utils";
+import { Decimal } from "decimal.js";
 
 interface Position {
   id: string;
@@ -24,6 +26,8 @@ interface PositionTableProps {
   unitPreference: 'quantity' | 'orderSize' | 'initialMargin';
   leverage: number;
   currentPrice?: number | null;
+  pricePrecision?: number;
+  quantityPrecision?: number;
 }
 
 interface PositionRowProps {
@@ -37,6 +41,8 @@ interface PositionRowProps {
   unitPreference: 'quantity' | 'orderSize' | 'initialMargin';
   leverage: number;
   currentPrice?: number | null;
+  pricePrecision?: number;
+  quantityPrecision?: number;
 }
 
 function PositionRow({
@@ -50,6 +56,8 @@ function PositionRow({
   unitPreference,
   leverage,
   currentPrice,
+  pricePrecision = 2,
+  quantityPrecision = 3,
 }: PositionRowProps) {
   
   // Helper function to get input label and placeholder
@@ -92,26 +100,24 @@ function PositionRow({
   const handleInputChange = (value: string) => {
     onPositionChange(position.id, 'inputValue', value);
     
-    // Calculate quantity based on input type
-    const orderPrice = parseFloat(position.orderPrice) || 0;
-    const inputValue = parseFloat(value) || 0;
+    // Calculate quantity based on input type using decimal math
+    const orderPriceDecimal = safeParseDecimal(position.orderPrice);
+    const inputValueDecimal = safeParseDecimal(value);
     
-    if (orderPrice > 0 && inputValue > 0) {
-      let calculatedQuantity = 0;
-      
-      switch (unitPreference) {
-        case 'quantity':
-          calculatedQuantity = inputValue;
-          break;
-        case 'orderSize':
-          calculatedQuantity = inputValue / orderPrice;
-          break;
-        case 'initialMargin':
-          calculatedQuantity = (inputValue * leverage) / orderPrice;
-          break;
+    if (orderPriceDecimal && inputValueDecimal && orderPriceDecimal.greaterThan(0) && inputValueDecimal.greaterThan(0)) {
+      try {
+        const calculatedQuantity = DecimalMath.calculatePositionSize(
+          inputValueDecimal.toString(),
+          orderPriceDecimal.toString(),
+          leverage,
+          unitPreference
+        );
+        
+        onPositionChange(position.id, 'quantity', DecimalMath.formatForInput(calculatedQuantity));
+      } catch (error) {
+        console.warn('Error calculating quantity:', error);
+        onPositionChange(position.id, 'quantity', '');
       }
-      
-      onPositionChange(position.id, 'quantity', calculatedQuantity.toString());
     } else {
       onPositionChange(position.id, 'quantity', '');
     }
@@ -135,12 +141,9 @@ function PositionRow({
           {currentPrice && (
             <button
               type="button"
-              onClick={() => onPositionChange(position.id, "orderPrice", currentPrice.toString())}
+              onClick={() => onPositionChange(position.id, "orderPrice", DecimalMath.formatForInput(currentPrice, 8))}
               className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 border border-primary/20 hover:border-primary/40 font-medium shadow-sm hover:shadow-md"
-              title={`Use current price: ${currentPrice.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}`}
+              title={`Use current price: ${DecimalMath.formatPrice(currentPrice, pricePrecision)}`}
             >
               <span className="flex items-center gap-1.5">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,10 +174,7 @@ function PositionRow({
                 positionSide === "long" ? "text-destructive" : "text-success"
               }`}
             >
-              {position.liquidationPrice.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+              {DecimalMath.formatPrice(position.liquidationPrice, pricePrecision)}
             </span>
           ) : position.error ? (
             <span
@@ -217,6 +217,8 @@ function MobilePositionTable({
   unitPreference,
   leverage,
   currentPrice,
+  pricePrecision = 2,
+  quantityPrecision = 3,
 }: PositionTableProps) {
   return (
     <div className="space-y-4 md:hidden">
@@ -387,6 +389,8 @@ export function PositionTable({
   unitPreference,
   leverage,
   currentPrice,
+  pricePrecision = 2,
+  quantityPrecision = 3,
 }: PositionTableProps) {
   return (
     <>
@@ -402,10 +406,7 @@ export function PositionTable({
                 Order Price (USDT)
                 {currentPrice ? (
                   <div className="text-xs text-muted-foreground font-normal mt-1 flex items-center gap-2">
-                    <span>Current: {currentPrice.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}</span>
+                    <span>Current: {DecimalMath.formatPrice(currentPrice, pricePrecision)}</span>
                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-primary/10 text-primary">
                       Live
                     </span>
@@ -443,6 +444,8 @@ export function PositionTable({
                 unitPreference={unitPreference}
                 leverage={leverage}
                 currentPrice={currentPrice}
+                pricePrecision={pricePrecision}
+                quantityPrecision={quantityPrecision}
               />
             ))}
             <tr>
@@ -471,6 +474,8 @@ export function PositionTable({
         unitPreference={unitPreference}
         leverage={leverage}
         currentPrice={currentPrice}
+        pricePrecision={pricePrecision}
+        quantityPrecision={quantityPrecision}
       />
     </>
   );
